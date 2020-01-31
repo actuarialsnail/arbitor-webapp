@@ -22,6 +22,7 @@ import { mainListItems, secondaryListItems } from './listItems';
 import Chart from './Chart';
 import Deposits from './Deposits';
 import Orders from './Orders';
+import Timer from './Timer';
 
 function Copyright() {
   return (
@@ -117,10 +118,10 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export default function Dashboard(props) {
-  const component = new React.Component(props);
+export default function Dashboard() {
   const classes = useStyles();
-  const [open, setOpen] = React.useState(true);
+  const [open, setOpen] = React.useState(true); 
+
   const handleDrawerOpen = () => {
     setOpen(true);
   };
@@ -128,7 +129,19 @@ export default function Dashboard(props) {
     setOpen(false);
   };
   const fixedHeightPaper = clsx(classes.paper, classes.fixedHeight);
-
+  React.useEffect(() => {
+    let breakpoint = 1100;
+    const handleResize = () => {
+      //console.log('resized to: ', window.innerWidth, 'x', window.innerHeight)
+      if (window.innerWidth < breakpoint){
+        setOpen(false);
+      } else {
+        setOpen(true);
+      }
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+  },[])
   return (
     <div className={classes.root}>
       <CssBaseline />
@@ -151,7 +164,7 @@ export default function Dashboard(props) {
               <NotificationsIcon />
             </Badge>
           </IconButton>
-          <Typography component="h5" variant="body2" color="inherit">{component.props.timestamp}</Typography>
+          <Timer />
         </Toolbar>
       </AppBar>
       <Drawer
@@ -176,17 +189,17 @@ export default function Dashboard(props) {
         <Container maxWidth="lg" className={classes.container}>
           <Grid container spacing={3}>
             {/* Chart */}
-            <Grid item xs={12} md={8} lg={9}>
+            {/* <Grid item xs={12} md={8} lg={9}>
               <Paper className={fixedHeightPaper}>
                 <Chart />
               </Paper>
-            </Grid>
+            </Grid> */}
             {/* Recent Deposits */}
-            <Grid item xs={12} md={4} lg={3}>
+            {/* <Grid item xs={12} md={4} lg={3}>
               <Paper className={fixedHeightPaper}>
                 <Deposits />
               </Paper>
-            </Grid>
+            </Grid> */}
             {/* Recent Orders */}
             <Grid item xs={12}>
               <Paper className={classes.paper}>

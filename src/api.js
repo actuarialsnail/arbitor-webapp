@@ -7,8 +7,8 @@ function subscribeToTimer(cb) {
 }
 export { subscribeToTimer };
 
-function requestTradeLogs(cb) {
-  socket.on('tradeLogs', tradeLogs => cb(null, tradeLogs))
-  socket.emit('requestTradeLogs', null);
+function requestTradeLogs(date, cb) {
+  socket.on('tradeLogs', res => cb(res.error, res.data));
+  socket.emit('requestTradeLogs', date);
 }
 export { requestTradeLogs };
