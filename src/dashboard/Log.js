@@ -98,7 +98,7 @@ export default function Log(props) {
         </Button>
         <Dialog onClose={handleClose} aria-labelledby="customized-dialog-title" open={open} >
           <DialogTitle id="customized-dialog-title" onClose={handleClose}>
-            {props.verificationLog.tradeObj.route.join(' ')}
+            {props.verificationLog.tradeObj.route.map((v,i)=>{return(<div key={i}>{v}</div>)})}
           </DialogTitle>
           <DialogContent dividers>
             <Paper elevation={0} >
