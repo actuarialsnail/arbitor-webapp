@@ -9,7 +9,7 @@ import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import Typography from '@material-ui/core/Typography';
 import MenuIcon from '@material-ui/icons/Menu';
-import {BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip} from 'recharts'
+import {BarChart, Bar, XAxis, Tooltip} from 'recharts'
 import Badge from '@material-ui/core/Badge';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
@@ -64,7 +64,7 @@ export default function Log(props) {
     const [open, setOpen] = React.useState(false);
     const [tabValue, setTabValue] = React.useState(0);
     const [tabDisabled, setTabDisabled] = React.useState(true);
-    const [badgeVisible, setBadgeVisible] = React.useState(true);
+    const [badgeVisible, setBadgeVisible] = React.useState(false);
 
   
     const handleClickOpen = () => {

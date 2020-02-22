@@ -24,6 +24,8 @@ import Remove from '@material-ui/icons/Remove';
 import SaveAlt from '@material-ui/icons/SaveAlt';
 import Search from '@material-ui/icons/Search';
 import ViewColumn from '@material-ui/icons/ViewColumn';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import { Paper } from '@material-ui/core';
 
 const tableIcons = {
     Add: forwardRef((props, ref) => <AddBox {...props} ref={ref} />),
@@ -67,7 +69,8 @@ export default function Opports() {
   const [verificationLogs, setVerificationLogs] = React.useState([]);
   const [executionLogs, setExecutionLogs] = React.useState({})
   const [selectedDate, setSelectedDate] = React.useState(new Date());
-
+  const [loading, setLoading] = React.useState(false);
+  const classes = useStyles();
   const formatCell = (arr) => {
     let formattedArr = []
     arr.forEach( (value) => {
@@ -78,6 +81,7 @@ export default function Opports() {
 
   const handleDateChange = date => {
     setSelectedDate(date);
+    setLoading(true);
     let requestDate = date.toJSON().slice(0,10);
     processTradeLogs(requestDate);
   };
@@ -89,8 +93,9 @@ export default function Opports() {
         //tradeLogs = tradeLog_dummy; // to remove post testing
         if (err) {
           console.log(err);
+          setLoading(false);
           setVerificationLogs([]);
-          return;
+        return;
         }
         
         // console.log(tradeLogs);
@@ -108,6 +113,7 @@ export default function Opports() {
             tradeLogs_execution[id] = log;
           }
         })
+        setLoading(false);
         setVerificationLogs([...tradeLogs_verification]);
         setExecutionLogs({...tradeLogs_execution});
       });
@@ -117,6 +123,7 @@ export default function Opports() {
   React.useEffect(() => {
     let today = new Date();
     let requestDate = today.toJSON().slice(0,10);
+    setLoading(true);
     processTradeLogs(requestDate);
   }, []);
 
@@ -144,7 +151,9 @@ export default function Opports() {
         <Grid item xs={12} sm={6}>
         </Grid>
       </Grid>
-            
+      <br />
+      {loading && <CircularProgress size={34} />}
+      {!loading &&
       <MaterialTable 
         title='Trade opportunities'
         columns={[
@@ -177,16 +186,14 @@ export default function Opports() {
         options={{
           search: true,
           sorting: true,
+          headerStyle:{fontWeight:"700", fontSize:"0.9rem"},
         }}
         icons={tableIcons}
-        
-      />
+        components={{
+          Container: props => <Paper {...props} elevation={0}/>
+        }}
+      />}
 
-      {/* <div className={classes.seeMore}>
-        <Link color="primary" href="#" onClick={preventDefault}>
-          See more orders
-        </Link>
-      </div> */}
     </React.Fragment>
   );
 }
