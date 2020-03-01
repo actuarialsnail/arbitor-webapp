@@ -12,3 +12,9 @@ function requestTradeLogs(date, cb) {
   socket.emit('requestTradeLogs', date);
 }
 export { requestTradeLogs };
+
+function requestPriceData(cb) {
+  socket.on('priceData', data => cb(data));
+  socket.emit('requestTradeLogs', 1000);
+}
+export { requestPriceData };

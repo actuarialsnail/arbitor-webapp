@@ -29,11 +29,11 @@ export const mainListItems = (
       </ListItemIcon>
       <ListItemText primary="Balances" />
     </ListItem>
-    <ListItem button>
+    <ListItem button component={Link} to="/pricefeed">
       <ListItemIcon>
         <BarChartIcon />
       </ListItemIcon>
-      <ListItemText primary="Reports" />
+      <ListItemText primary="Price Feeds" />
     </ListItem>
     <ListItem button>
       <ListItemIcon>

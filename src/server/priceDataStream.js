@@ -420,5 +420,7 @@ class priceDataStreamClass {
 
 }
 
+module.exports =  priceDataStreamClass;
+
 // const stream = new priceDataStreamClass();
 // stream.masterStream();
