@@ -11,6 +11,7 @@ const config = {
   kraken: {
 
   },
+  scheduled_timer: 3600000 //3600000 = 1000 *60 *60
 }
 
 class priceDataStreamClass {
@@ -20,11 +21,11 @@ class priceDataStreamClass {
   }
 
   masterStream() {
-    //this.coinfloorOrderbookRequest();
-    // this.coinbaseOrderbookRequest();
-    // this.binanceOrderbookRequest();
+    this.coinfloorOrderbookRequest();
+    this.coinbaseOrderbookRequest();
+    this.binanceOrderbookRequest();
     this.krakenOrderbookRequest();
-    // this.cexOrderbookRequest();
+    this.cexOrderbookRequest();
   }
 
   coinfloorOrderbookRequest() {
@@ -41,8 +42,12 @@ class priceDataStreamClass {
 
     const coinfloor_ws = new WebSocket('wss://api.coinfloor.co.uk/');
     coinfloor_ws.on('open', () => {
-      console.log('coinfloor ws connected');
+      console.log('coinfloor websocket connected at:', new Date());
       coinfloor_ws.send(JSON.stringify(request_WatchOrders));
+      setTimeout(() => {
+        console.log('scheduled reconnection of coinfloor websocket connection');
+        coinfloor_ws.close();
+      }, config.scheduled_timer);
     })
 
     coinfloor_ws.on('error', error => {
@@ -50,19 +55,20 @@ class priceDataStreamClass {
     })
 
     coinfloor_ws.on('message', msg_text => {
-      console.log('coinfloor ws message:', msg_text)
+      // console.log('coinfloor ws message:', msg_text)
       let msg = JSON.parse(msg_text);
 
       this.priceData.coinfloor.BTCGBP = update_orders(msg);
 
-      console.log('bid 0', this.priceData.coinfloor.BTCGBP.bids[0], 'ask 0', this.priceData.coinfloor.BTCGBP.asks[0]);
-      console.log('bid 1', this.priceData.coinfloor.BTCGBP.bids[1], 'ask 1', this.priceData.coinfloor.BTCGBP.asks[1]);
-      console.log('bid 2', this.priceData.coinfloor.BTCGBP.bids[2], 'ask 2', this.priceData.coinfloor.BTCGBP.asks[2]);
-      console.log('bid 3', this.priceData.coinfloor.BTCGBP.bids[3], 'ask 3', this.priceData.coinfloor.BTCGBP.asks[3]);
+      // console.log('bid 0', this.priceData.coinfloor.BTCGBP.bids[0], 'ask 0', this.priceData.coinfloor.BTCGBP.asks[0]);
+      // console.log('bid 1', this.priceData.coinfloor.BTCGBP.bids[1], 'ask 1', this.priceData.coinfloor.BTCGBP.asks[1]);
+      // console.log('bid 2', this.priceData.coinfloor.BTCGBP.bids[2], 'ask 2', this.priceData.coinfloor.BTCGBP.asks[2]);
+      // console.log('bid 3', this.priceData.coinfloor.BTCGBP.bids[3], 'ask 3', this.priceData.coinfloor.BTCGBP.asks[3]);
     })
 
     coinfloor_ws.on('close', () => {
-      console.log('coinfloor ws disconnected')
+      console.log('coinfloor websocket connection closed, reconnecting in 5s...');
+      setTimeout(() => { this.coinfloorOrderbookRequest() }, 5000);
     })
 
     const update_orders = (data) => {
@@ -82,7 +88,7 @@ class priceDataStreamClass {
         if (data.notice === 'OrderClosed') {
           delete orderbook[data.id];
         }
-        console.log('orderbook updated, size:', Object.keys(orderbook).length)
+        // console.log('orderbook updated, size:', Object.keys(orderbook).length)
       }
 
       return formatOrderbook(orderbook);
@@ -94,7 +100,7 @@ class priceDataStreamClass {
         if (!acc[key]) { acc[key] = obj.quantity } else { acc[key] += obj.quantity }
         return acc;
       }, {})
-      console.log(Object.values(orderbook).length);
+      // console.log(Object.values(orderbook).length);
 
       let formattedOrderbook = { bids: [], asks: [] };
       Object.keys(orderbook).forEach(key => {
@@ -119,17 +125,14 @@ class priceDataStreamClass {
     let kraken_orderbook = {};
     let kraken_depth = 10;
     const kraken_ws = new WebSocket('wss://ws.kraken.com');
-    const kraken_map = {
-
+    const kraken_map = (pair) => {
+      return (pair.replace('/', ''));
     }
+    const kraken_pairs = ['BTC/GBP', 'ETH/GBP', 'BTC/EUR', 'ETH/EUR', 'BCH/EUR', 'LTC/EUR', 'ETH/BTC', 'BCH/BTC', 'LTC/BTC', 'BAT/BTC', 'BAT/ETH', 'BAT/EUR'];
 
     const kraken_request = {
       "event": "subscribe",
-      "pair": [
-        "XBT/USD",
-        "BTC/EUR",
-        "BTC/GBP",
-      ],
+      "pair": kraken_pairs,
       "subscription": {
         "name": "book",
         "depth": kraken_depth,
@@ -137,8 +140,12 @@ class priceDataStreamClass {
     }
 
     kraken_ws.on('open', () => {
-      console.log('kraken ws connected')
+      console.log('kraken websocket connected at:', new Date());
       kraken_ws.send(JSON.stringify(kraken_request));
+      setTimeout(() => {
+        console.log('scheduled reconnection of kraken websocket connection');
+        kraken_ws.close();
+      }, config.scheduled_timer);
     })
 
     kraken_ws.on('error', error => {
@@ -149,18 +156,17 @@ class priceDataStreamClass {
       let msg = JSON.parse(msg_text);
       // console.log('kraken ws message:', msg_text);
 
-      //const a = [0, { "a": [["8880.50000", "0.06552590", "1582836045.595097"]] }, { "b": [["8880.50000", "0.00000000", "1582836045.596932"], ["8870.50000", "0.64000000", "1582836045.410447", "r"]] }, "book-10", "XBT/USD"]
       try {
         if (Array.isArray(msg)) {
-          let pair = msg[msg.length - 1];
+          let pair = kraken_map(msg[msg.length - 1]);
           pair in this.priceData.kraken ? null : this.priceData.kraken[pair] = {};
           kraken_orderbook[pair] = this.priceData.kraken[pair];
 
           if ("as" in msg[1]) { //snapshot // init set up orderbook format
             kraken_orderbook[pair].asks = [];
-            msg[1].as.forEach(order => { kraken_orderbook[pair].asks.push({ price: order[0], size: order[1] }) });
+            msg[1].as.forEach(order => { kraken_orderbook[pair].asks.push({ price: Number(order[0]), size: Number(order[1]) }) });
             kraken_orderbook[pair].bids = [];
-            msg[1].bs.forEach(order => { kraken_orderbook[pair].bids.push({ price: order[0], size: order[1] }) });
+            msg[1].bs.forEach(order => { kraken_orderbook[pair].bids.push({ price: Number(order[0]), size: Number(order[1]) }) });
           } else
             if ("a" in msg[1] || "b" in msg[1]) { //feed updates
               for (let x of msg.slice(1, msg.length - 2)) { // possibility of both 'a' and 'b' updates in one feed
@@ -186,7 +192,8 @@ class priceDataStreamClass {
     })
 
     kraken_ws.on('close', () => {
-      console.log('kraken ws disconnected')
+      console.log('kraken websocket connection closed, reconnecting in 5s...');
+      setTimeout(() => { this.krakenOrderbookRequest() }, 5000);
     })
 
     const updateOrderbook = (pair, side, order_updates) => {
@@ -195,14 +202,14 @@ class priceDataStreamClass {
         let updated = false;
         for (const order of kraken_orderbook[pair][side]) {
           if (order_update[0] == order.price) {
-            kraken_orderbook[pair][side][count].price = order_update[0];
-            kraken_orderbook[pair][side][count].size = order_update[1];
+            kraken_orderbook[pair][side][count].price = Number(order_update[0]);
+            kraken_orderbook[pair][side][count].size = Number(order_update[1]);
             updated = true;
             break;
           }
           count++;
         }
-        if (!updated) { kraken_orderbook[pair][side].push({ price: order_update[0], size: order_update[1] }); }
+        if (!updated) { kraken_orderbook[pair][side].push({ price: Number(order_update[0]), size: Number(order_update[1]) }); }
       })
     }
 
@@ -223,8 +230,195 @@ class priceDataStreamClass {
 
   } // krakenOrderbookRequest
 
+  coinbaseOrderbookRequest() {
+    const product_list = ['BTC-GBP', 'ETH-GBP', 'BCH-GBP', 'LTC-GBP', 'BTC-EUR', 'ETH-EUR', 'BCH-EUR', 'LTC-EUR', 'ETH-BTC', 'BCH-BTC', 'LTC-BTC', 'BAT-ETH', 'XRP-BTC', 'XRP-EUR'];
+    // const product_list = ['BTC-GBP'];
+    this.priceData.coinbase = {};
+
+    const coinbase = require('coinbase-pro');
+    const coinbase_ws = new coinbase.WebsocketClient(
+      product_list,
+      'wss://ws-feed.pro.coinbase.com',
+      "",
+      { channels: ['level2'] }
+    );
+
+    let coinbase_orderbook = {};
+
+    const coinbaseOrderbookInit = (baseArr) => {
+      //init only require format object into numbers
+      let updatedArr = []
+      for (let item of baseArr) {
+        updatedArr.push({ price: Number(item[0]), size: Number(item[1]) });
+      }
+      return updatedArr;
+    }
+
+    const coinbaseOrderbookUpdate = (baseArr, update) => {
+      var found = false;
+      var updatedArr = [];
+      var updatePrice = Number(update[0]);
+      var updateSize = Number(update[1]);
+      var i = 0;
+      var len = baseArr.length;
+      while (i < len) {
+        //if price matches then update the size, if size is 0 then ignore
+        if (baseArr[i].price == updatePrice) {
+          found = true;
+          if (updateSize != 0) {
+            updatedArr.push({ price: updatePrice, size: updateSize })
+          }
+        } else {
+          updatedArr.push({ price: baseArr[i].price, size: baseArr[i].size })
+        }
+        i++
+      }
+      if (!found) { //if new item, add to array
+        //console.log('not found', updatedArr);
+        updatedArr.push({ price: updatePrice, size: updateSize });
+      }
+      return updatedArr;
+    }
+
+    const coinbaseSortedOrderbookSummary = (arr, bidask, len) => {
+      arr.sort(function (a, b) {
+        if (bidask == 'asks') { return a.price - b.price; }
+        else { return b.price - a.price; }
+      });
+      return arr.slice(0, len);
+    };
+
+    coinbase_ws.on('open', function () {
+      console.log('coinbase websocket connected at:', new Date());
+      setTimeout(function () {
+        console.log('scheduled reconnection of coinbase websocket connection');
+        coinbase_ws.disconnect()
+      }, config.scheduled_timer); //force restart websocke every hour - avoid ws freezing with no close event firing
+    });
+
+    coinbase_ws.on('message', data => {
+      //console.log(data);
+      let tickerDepth = 10;
+
+      if (data['type'] == 'snapshot') {
+        //initialise
+        let product_id = data['product_id'].replace('-', '');
+        this.priceData.coinbase[product_id] = { bids: [], asks: [] };
+        coinbase_orderbook[product_id] = { bids: [], asks: [] };
+
+        coinbase_orderbook[product_id]['bids'] = coinbaseOrderbookInit(data['bids']);
+        coinbase_orderbook[product_id]['asks'] = coinbaseOrderbookInit(data['asks']);
+      }
+      if (data['type'] == 'l2update') {
+        let product_id = data['product_id'].replace('-', '');
+        //console.log(data);
+        data['changes'].forEach(update => {
+          let updateType = update[0];
+          let bidask = (updateType == 'buy') ? 'bids' : 'asks';
+          coinbase_orderbook[product_id][bidask] = coinbaseOrderbookUpdate(coinbase_orderbook[product_id][bidask], [update[1], update[2]]);
+          this.priceData.coinbase[product_id][bidask] = coinbaseSortedOrderbookSummary(coinbase_orderbook[product_id][bidask], bidask, tickerDepth);
+        });
+        // console.log(coinbase_orderbook['BTCGBP'].bids.length, coinbase_orderbook['BTCGBP'].asks.length);
+        // console.log(this.priceData.coinbase[product_id].asks);
+        // console.log(this.priceData.coinbase[product_id].bids);
+      }
+    });
+
+    coinbase_ws.on('error', err => {
+      /* handle error */
+      console.log('Coinbase ws:', err);
+    });
+
+    coinbase_ws.on('close', () => {
+      console.log('coinbase websocket connection closed, reconnecting in 5s...');
+      setTimeout(() => { this.coinbaseOrderbookRequest() }, 5000);
+    });
+  } // coinbase pro
+
+  binanceOrderbookRequest() {
+    const product_list = ['ETHBTC', 'BCHBTC', 'LTCBTC', 'LTCETH', 'BATBTC', 'BATETH', 'XRPBTC'];
+    this.priceData.binance = {};
+
+    const binance = require('binance-api-node').default;
+    const binanceClient = binance();
+    binanceClient.time().then(time => {
+      let clean = binanceClient.ws.ticker(product_list, exchangeTicker)
+      console.log('binance websocket connected at:', new Date());
+      setTimeout(() => {
+        console.log('scheduled reconnection of binance websocket connection');
+        clean();
+        console.log('binance websocket connection closed, reconnecting in 5s...');
+        setTimeout(() => { this.binanceOrderbookRequest(); }, 5000)
+      }, config.scheduled_timer);
+    });
+
+    let exchangeTicker = ticker => {
+      let { symbol: symbol, bestBid: bestBid, bestBidQnt: bestBidQnt, bestAsk: bestAsk, bestAskQnt: bestAskQnt } = ticker;
+      this.priceData.binance[symbol] = { bids: [{ price: Number(bestBid), size: Number(bestBidQnt) }], asks: [{ price: Number(bestAsk), size: Number(bestAskQnt) }] }
+      // console.log(this.priceData.binance[symbol]);
+    }
+  } // binanceOrderbookRequest
+
+  cexOrderbookRequest() {
+    const product_list = ['BTCGBP', 'ETHGBP', 'BCHGBP', 'LTCGBP', 'XRPGBP', 'BTCEUR', 'ETHEUR', 'BCHEUR', 'LTCEUR', 'XRPEUR', 'ETHBTC', 'BCHBTC', 'LTCBTC', 'XRPBTC', 'BATEUR'];
+    let payload = product_list.map(product => {
+      return 'pair-' + product.slice(0, 3) + '-' + product.slice(3, 6)
+    })
+    const pricescale = {
+      BTC: 8,
+      ETH: 6,
+      BCH: 8,
+      LTC: 8,
+      XRP: 6,
+      BAT: 6,
+    }
+    this.priceData.cex = {};
+    const cex_ws = new WebSocket('wss://ws.cex.io/ws');
+
+    cex_ws.on('open', () => {
+      // console.log('cex connection established')
+      setTimeout(() => {
+        console.log('scheduled reconnection of cex websocket connection');
+        cex_ws.close();
+      }, config.scheduled_timer);
+    })
+
+    cex_ws.on('error', error => {
+      console.log('cex error', error);
+    })
+
+    // implement https://blog.cex.io/news/engine-updates-16956
+    cex_ws.on('message', msg => {
+      let data = JSON.parse(msg);
+      if (data.e === 'md') {
+        let pair = data.data.pair.replace(':', '');
+        this.priceData.cex[pair] = { bids: data.data.buy, asks: data.data.sell };
+        //console.log(this.priceData.cex[pair].asks);
+      }
+
+      if (data.e === 'connected') {
+        console.log('cex websocket connected at:', new Date());
+        let request = {
+          "e": "subscribe",
+          "rooms": [...payload]
+        };
+        // console.log(request);
+        cex_ws.send(JSON.stringify(request))
+      }
+
+      if (data.e === 'ping') {
+        console.log('ping received');
+        cex_ws.send('{"e":"pong"}');
+      }
+    });
+
+    cex_ws.on('close', () => {
+      console.log('cex websocket connection closed, reconnecting in 5s...');
+      setTimeout(() => { this.cexOrderbookRequest() }, 5000);
+    })
+  } //cexOrderbookRequest
 
 }
 
-const stream = new priceDataStreamClass();
-stream.masterStream();
+// const stream = new priceDataStreamClass();
+// stream.masterStream();
