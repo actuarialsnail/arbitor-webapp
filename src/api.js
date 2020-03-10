@@ -15,6 +15,6 @@ export { requestTradeLogs };
 
 function requestPriceData(cb) {
   socket.on('priceData', data => cb(data));
-  socket.emit('requestTradeLogs', 1000);
+  socket.emit('requestPriceData', 1000);
 }
 export { requestPriceData };
