@@ -11,7 +11,7 @@ const config = {
   kraken: {
 
   },
-  scheduled_timer: 120000 // hourly: 3600000 = 1000 *60 *60
+  scheduled_timer: 3600000 // hourly: 3600000 = 1000 *60 *60
 }
 
 class priceDataStreamClass {

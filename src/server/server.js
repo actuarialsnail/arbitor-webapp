@@ -6,6 +6,8 @@ const priceDataStream = require('./priceDataStream');
 const priceStream = new priceDataStream();
 priceStream.masterStream();
 
+const balanceRequest = require('./balanceRequest');
+
 io.on('connection', (client) => {
   client.on('subscribeToTimer', (interval) => {
     console.log('client is subscribing to timer with interval ', interval);
@@ -52,6 +54,23 @@ io.on('connection', (client) => {
     setInterval(() => {
       client.emit('priceData', priceStream.priceData);
     }, interval);
+  })
+
+  client.on('requestBalanceData', (key) => {
+    console.log('client requested balance');
+    if (key === 'bs') {
+      balanceRequest((balance) => {
+        client.emit('balanceData', balance);
+      });
+    } else {
+      let dummy = {
+        'coinfloor': { 'GBP': 10 },
+        'coinbase': { 'GBP': 10 },
+        'binance': { 'GBP': 10 }
+      }
+      client.emit('balanceData', dummy);
+    }
+
   })
 });
 

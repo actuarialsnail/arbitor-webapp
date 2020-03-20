@@ -54,7 +54,7 @@ export default function PriceFeed() {
 
     React.useEffect(() => {
         requestPriceData((data) => {
-            console.log(new Date(), data);
+            //console.log(new Date(), data);
             setPriceData(data);
             setLoaded(true);
         });

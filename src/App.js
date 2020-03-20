@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import Opports from './dashboard/Opports';
 import PriceFeed from './dashboard/PriceFeed';
+import BalanceView from './dashboard/BalanceView';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Frame from './dashboard/Frame';
 import { makeStyles } from '@material-ui/core/styles';
@@ -52,6 +53,9 @@ export default function App() {
                 </Route>
                 <Route path="/pricefeed">
                   <PriceFeed />
+                </Route>
+                <Route path="/balance">
+                  <BalanceView />
                 </Route>
                 <Route path="/">
                   <Home />
