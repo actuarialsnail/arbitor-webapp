@@ -1,6 +1,5 @@
 const config = require('./config/config');
 const fetch = require('node-fetch');
-const fs = require('fs');
 const crypto = require('crypto');
 const querystring = require('querystring')
 global.Headers = fetch.Headers;
@@ -222,12 +221,12 @@ const batchApiBalanceRequest = async () => {
 
 //module.exports = batchApiBalanceRequest();
 
-const requestBalance = async (callback) => {
+const request = async (callback) => {
     let balance = await batchApiBalanceRequest();
     callback(balance);
 }
 
-module.exports = requestBalance;
+module.exports = {request, batchApiBalanceRequest};
 
 // requestBalance((balance)=>{
 //     console.log(balance);

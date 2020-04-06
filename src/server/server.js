@@ -59,7 +59,7 @@ io.on('connection', (client) => {
   client.on('requestBalanceData', (key) => {
     console.log('client requested balance');
     if (key === 'bs') {
-      balanceRequest((balance) => {
+      balanceRequest.request((balance) => {
         client.emit('balanceData', balance);
       });
     } else {

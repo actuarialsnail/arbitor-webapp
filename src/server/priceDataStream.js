@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 const WebSocket = require('ws');
 
 const config = {
@@ -141,7 +140,7 @@ class priceDataStreamClass {
     const kraken_map = (pair) => {
       return (pair.replace('/', '-').replace('XBT', 'BTC'));
     }
-    const kraken_pairs = ['BTC/GBP', 'ETH/GBP', 'BTC/EUR', 'ETH/EUR', 'BCH/EUR', 'LTC/EUR', 'ETH/BTC', 'BCH/BTC', 'LTC/BTC', 'BAT/BTC', 'BAT/ETH', 'BAT/EUR'];
+    const kraken_pairs = ['BTC/GBP', 'ETH/GBP', 'BTC/EUR', 'ETH/EUR', 'BCH/EUR', 'LTC/EUR', 'ETH/BTC', 'BCH/BTC', 'LTC/BTC', 'BAT/BTC', 'BAT/ETH', 'BAT/EUR', 'GBP/USD', 'EUR/USD', 'EUR/GBP'];
 
     const kraken_request = {
       "event": "subscribe",
@@ -361,10 +360,10 @@ class priceDataStreamClass {
   } // coinbase pro
 
   binanceOrderbookRequest() {
-    const product_list = ['ETHBTC', 'BCHBTC', 'LTCBTC', 'LTCETH', 'BATBTC', 'BATETH', 'XRPBTC'];
+    const product_list = ['ETHBTC', 'BCHBTC', 'LTCBTC', 'LTCETH', 'BATBTC', 'BATETH', 'XRPBTC', 'BTCEUR', 'ETHEUR', 'XRPEUR'];
     const binanceMap = {};
-    product_list.forEach(key =>{
-      binanceMap[key] = key.slice(0,3) + '-' + key.slice(3,6);
+    product_list.forEach(key => {
+      binanceMap[key] = key.slice(0, 3) + '-' + key.slice(3, 6);
     })
     const binance = require('binance-api-node').default;
     const binanceClient = binance();
