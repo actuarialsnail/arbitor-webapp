@@ -49,10 +49,10 @@ io.on('connection', (client) => {
     }
   });
 
-  client.on('requestPriceData', (interval) => {
-    console.log('client is subscribing to price data stream with interval ', interval);
+  client.on('requestStreamData', (interval) => {
+    console.log('client is subscribing to data stream with interval ', interval);
     setInterval(() => {
-      client.emit('priceData', priceStream.priceData);
+      client.emit('streamData', priceStream.streamData);
     }, interval);
   })
 

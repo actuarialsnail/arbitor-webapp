@@ -33,6 +33,7 @@ const krakenSignature = (path, request, secret, nonce) => {
 };
 
 const apiRequest = async (url, method, headers, body) => {
+    let catch_res;
     try {
         const response = await fetch(url, {
             method: method,
@@ -44,7 +45,8 @@ const apiRequest = async (url, method, headers, body) => {
         //console.log(json)
         return json;
     } catch (error) {
-        console.log(JSON.stringify({ location: 'apiRequest', error: error }, null, 4));
+        let time = Date();
+        console.log(JSON.stringify({ time, location: 'apiRequest', error, catch_res }, null, 4));
         return (error);
     }
 }
@@ -54,22 +56,21 @@ const batchApiBalanceRequest = async () => {
 
     let coinfloor_url_btcgbp = 'https://webapi.coinfloor.co.uk/bist/XBT/GBP/balance/';
     let coinfloor_url_ethgbp = 'https://webapi.coinfloor.co.uk/bist/ETH/GBP/balance/';
-    const coinfloor_headers = new Headers();
-    coinfloor_headers.set('Authorization', 'Basic ' + Buffer.from(config.credential.coinfloor.userid + '/' + config.credential.coinfloor.apikey + ":" + config.credential.coinfloor.password).toString('base64'));
+    let coinfloor_headers = { 'Authorization': 'Basic ' + Buffer.from(config.credential.coinfloor.userid + '/' + config.credential.coinfloor.apikey + ":" + config.credential.coinfloor.password).toString('base64') };
 
     const coinbase_url = config.credential.coinbase.apiURL + '/accounts';
-    const coinbase_headers = new Headers();
     let coinbase_timestamp = Date.now() / 1000;
-    coinbase_headers.set('CB-ACCESS-KEY', config.credential.coinbase.apikey);
-    coinbase_headers.set('CB-ACCESS-SIGN', coinbaseSignature(coinbase_timestamp, 'GET', '/accounts', "", config.credential.coinbase.base64secret));
-    coinbase_headers.set('CB-ACCESS-TIMESTAMP', coinbase_timestamp);
-    coinbase_headers.set('CB-ACCESS-PASSPHRASE', config.credential.coinbase.passphrase);
+    coinbase_headers = {
+        'CB-ACCESS-KEY': config.credential.coinbase.apikey,
+        'CB-ACCESS-SIGN': coinbaseSignature(coinbase_timestamp, 'GET', '/accounts', "", config.credential.coinbase.base64secret),
+        'CB-ACCESS-TIMESTAMP': coinbase_timestamp,
+        'CB-ACCESS-PASSPHRASE': config.credential.coinbase.passphrase
+    }
 
     let binance_burl = 'https://api.binance.com';
     let binance_endpoint = '/api/v3/account';
     let binance_dataQueryString = 'recvWindow=20000&timestamp=' + Date.now();
-    let binance_headers = new Headers();
-    binance_headers.set('X-MBX-APIKEY', config.credential.binance.apiKey);
+    let binance_headers = { 'X-MBX-APIKEY': config.credential.binance.apiKey };
 
     let kraken_url = 'https://api.kraken.com/0/private/Balance';
     let nonce = new Date() * 1000;
@@ -79,15 +80,15 @@ const batchApiBalanceRequest = async () => {
     let kraken_body = JSON.stringify(kraken_postData);
 
     let signature = krakenSignature('/0/private/Balance', kraken_body, config.credential.kraken.private_key, nonce);
-    let kraken_headers = new Headers();
-    kraken_headers.set('User-Agent', 'Kraken Javascript API Client');
-    kraken_headers.set('API-Key', config.credential.kraken.api);
-    kraken_headers.set('API-Sign', signature);
-    kraken_headers.set('Content-type', 'application/json');
+    let kraken_headers = {
+        'User-Agent': 'Kraken Javascript API Client',
+        'API-Key': config.credential.kraken.api,
+        'API-Sign': signature,
+        'Content-type': 'application/json'
+    }
 
     let cex_url = 'https://cex.io/api/balance/';
-    let cex_headers = new Headers();
-    cex_headers.set('Content-Type', 'application/x-www-form-urlencoded');
+    let cex_headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
     let cex_timestamp = Math.floor(Date.now() / 1000);
 
     let message = cex_timestamp.toString() + config.credential.cex.userid + config.credential.cex.apiKey;
@@ -226,7 +227,7 @@ const request = async (callback) => {
     callback(balance);
 }
 
-module.exports = {request, batchApiBalanceRequest};
+module.exports = { request, batchApiBalanceRequest };
 
 // requestBalance((balance)=>{
 //     console.log(balance);

@@ -1,22 +1,14 @@
 const WebSocket = require('ws');
+const scope = require('./config/scope');
 
-const config = {
-  coinfloor: {
-    wss: 'wss://api.coinfloor.co.uk/',
-  },
-  coinbase: {
-
-  },
-  kraken: {
-
-  },
-  scheduled_timer: 3600000 // hourly: 3600000 = 1000 *60 *60
+const _config = {
+  scheduled_timer: 3600000 // hourly: 3600000 = 1000 *60 *60, 2 minutes: 120000
 }
 
 class priceDataStreamClass {
   constructor() {
+    this.streamData = {};
     this.priceData = {};
-    this.routes = {};
   }
 
   masterStream() {
@@ -36,12 +28,12 @@ class priceDataStreamClass {
       watch: true,
     }
 
-    if ('BTC-GBP' in this.priceData) {
-      if (!('coinfloor' in this.priceData['BTC-GBP'])) {
-        this.priceData['BTC-GBP'].coinfloor = {}
+    if ('BTC-GBP' in this.streamData) {
+      if (!('coinfloor' in this.streamData['BTC-GBP'])) {
+        this.streamData['BTC-GBP'].coinfloor = {}
       }
     } else {
-      this.priceData['BTC-GBP'] = { 'coinfloor': {} }
+      this.streamData['BTC-GBP'] = { 'coinfloor': {} }
     }
     let coinfloor_orderbook = {};
 
@@ -52,7 +44,7 @@ class priceDataStreamClass {
       setTimeout(() => {
         console.log('scheduled reconnection of coinfloor websocket connection');
         coinfloor_ws.close();
-      }, config.scheduled_timer);
+      }, _config.scheduled_timer);
     })
 
     coinfloor_ws.on('error', error => {
@@ -70,11 +62,12 @@ class priceDataStreamClass {
       }
 
       if (wsOrderbook) {
-        this.priceData['BTC-GBP'].coinfloor = update_orders(msg);
-        // console.log('bid 0', this.priceData['BTC-GBP'].coinfloor.bids[0], 'ask 0', this.priceData['BTC-GBP'].coinfloor.asks[0]);
-        // console.log('bid 1', this.priceData['BTC-GBP'].coinfloor.bids[1], 'ask 1', this.priceData['BTC-GBP'].coinfloor.asks[1]);
-        // console.log('bid 2', this.priceData['BTC-GBP'].coinfloor.bids[2], 'ask 2', this.priceData['BTC-GBP'].coinfloor.asks[2]);
-        // console.log('bid 3', this.priceData['BTC-GBP'].coinfloor.bids[3], 'ask 3', this.priceData['BTC-GBP'].coinfloor.asks[3]);
+        this.streamData['BTC-GBP'].coinfloor = update_orders(msg);
+        // console.log('bid 0', this.streamData['BTC-GBP'].coinfloor.bids[0], 'ask 0', this.streamData['BTC-GBP'].coinfloor.asks[0]);
+        // console.log('bid 1', this.streamData['BTC-GBP'].coinfloor.bids[1], 'ask 1', this.streamData['BTC-GBP'].coinfloor.asks[1]);
+        // console.log('bid 2', this.streamData['BTC-GBP'].coinfloor.bids[2], 'ask 2', this.streamData['BTC-GBP'].coinfloor.asks[2]);
+        // console.log('bid 3', this.streamData['BTC-GBP'].coinfloor.bids[3], 'ask 3', this.streamData['BTC-GBP'].coinfloor.asks[3]);
+        this.streamDataToPriceData('BTC-GBP', 'coinfloor', this.streamData['BTC-GBP'].coinfloor);
       }
 
     })
@@ -157,7 +150,7 @@ class priceDataStreamClass {
       setTimeout(() => {
         console.log('scheduled reconnection of kraken websocket connection');
         kraken_ws.close();
-      }, config.scheduled_timer);
+      }, _config.scheduled_timer);
     })
 
     kraken_ws.on('error', error => {
@@ -171,14 +164,14 @@ class priceDataStreamClass {
       try {
         if (Array.isArray(msg)) {
           let pair = kraken_map(msg[msg.length - 1]);
-          if (pair in this.priceData) {
-            if (!('kraken' in this.priceData[pair])) {
-              this.priceData[pair].kraken = {}
+          if (pair in this.streamData) {
+            if (!('kraken' in this.streamData[pair])) {
+              this.streamData[pair].kraken = {}
             }
           } else {
-            this.priceData[pair] = { 'kraken': {} }
+            this.streamData[pair] = { 'kraken': {} }
           }
-          kraken_orderbook[pair] = this.priceData[pair].kraken;
+          kraken_orderbook[pair] = this.streamData[pair].kraken;
 
           if ("as" in msg[1]) { //snapshot // init set up orderbook format
             kraken_orderbook[pair].bids = [];
@@ -196,12 +189,13 @@ class priceDataStreamClass {
                   }
               } //for both 'a' and 'b' updates in one feed
             } //if feed updates
-          this.priceData[pair].kraken = processOrderbook(kraken_orderbook[pair]);
+          this.streamData[pair].kraken = processOrderbook(kraken_orderbook[pair]);
           // console.log(pair, 'orderbook:');
           // console.log('asks');
-          // console.log(this.priceData[pair].kraken.asks.reverse());
+          // console.log(this.streamData[pair].kraken.asks.reverse());
           // console.log('bids');
-          // console.log(this.priceData[pair].kraken.bids);
+          // console.log(this.streamData[pair].kraken.bids);
+          this.streamDataToPriceData(pair, 'kraken', this.streamData[pair].kraken);
         } //if feed is array
       } catch (error) {
         console.log('kraken ws message not processed:', JSON.stringify(msg), 'error', error);
@@ -309,29 +303,30 @@ class priceDataStreamClass {
       console.log('coinbase websocket connected at:', new Date());
       setTimeout(function () {
         console.log('scheduled reconnection of coinbase websocket connection');
-        coinbase_ws.disconnect()
-      }, config.scheduled_timer); //force restart websocke every hour - avoid ws freezing with no close event firing
+        try { coinbase_ws.disconnect() } catch (err) { console.log(err) };
+      }, _config.scheduled_timer); //force restart websocke every hour - avoid ws freezing with no close event firing
     });
 
     coinbase_ws.on('message', data => {
       //console.log(data);
       let tickerDepth = 10;
-
       if (data['type'] == 'snapshot') {
         //initialise
         let product_id = data['product_id'];
-        if (product_id in this.priceData) {
-          if (!('coinbase' in this.priceData[product_id])) {
-            this.priceData[product_id].coinbase = {}
+        if (product_id in this.streamData) {
+          if (!('coinbase' in this.streamData[product_id])) {
+            this.streamData[product_id].coinbase = {}
           }
         } else {
-          this.priceData[product_id] = { 'coinbase': {} }
+          this.streamData[product_id] = { 'coinbase': {} }
         }
-        // this.priceData[product_id].coinbase = { bids: [], asks: [] };
+        // this.streamData[product_id].coinbase = { bids: [], asks: [] };
         coinbase_orderbook[product_id] = { bids: [], asks: [] };
 
         coinbase_orderbook[product_id]['bids'] = coinbaseOrderbookInit(data['bids']);
         coinbase_orderbook[product_id]['asks'] = coinbaseOrderbookInit(data['asks']);
+        this.streamData[product_id].coinbase['bids'] = coinbaseSortedOrderbookSummary(coinbase_orderbook[product_id]['bids'], 'bids', tickerDepth);
+        this.streamData[product_id].coinbase['asks'] = coinbaseSortedOrderbookSummary(coinbase_orderbook[product_id]['asks'], 'asks', tickerDepth);
       }
       if (data['type'] == 'l2update') {
         let product_id = data['product_id'];
@@ -340,11 +335,12 @@ class priceDataStreamClass {
           let updateType = update[0];
           let bidask = (updateType == 'buy') ? 'bids' : 'asks';
           coinbase_orderbook[product_id][bidask] = coinbaseOrderbookUpdate(coinbase_orderbook[product_id][bidask], [update[1], update[2]]);
-          this.priceData[product_id].coinbase[bidask] = coinbaseSortedOrderbookSummary(coinbase_orderbook[product_id][bidask], bidask, tickerDepth);
+          this.streamData[product_id].coinbase[bidask] = coinbaseSortedOrderbookSummary(coinbase_orderbook[product_id][bidask], bidask, tickerDepth);
         });
         // console.log(coinbase_orderbook['BTC-GBP'].bids.length, coinbase_orderbook['BTC-GBP'].asks.length);
-        // console.log(this.priceData[product_id].coinbase.asks);
-        // console.log(this.priceData[product_id].coinbase.bids);
+        // console.log(this.streamData[product_id].coinbase.asks);
+        // console.log(this.streamData[product_id].coinbase.bids);
+        this.streamDataToPriceData(product_id, 'coinbase', this.streamData[product_id].coinbase);
       }
     });
 
@@ -375,21 +371,22 @@ class priceDataStreamClass {
         clean();
         console.log('binance websocket connection closed, reconnecting in 5s...');
         setTimeout(() => { this.binanceOrderbookRequest(); }, 5000)
-      }, config.scheduled_timer);
+      }, _config.scheduled_timer);
     });
 
     let exchangeTicker = ticker => {
       let { symbol: bsymbol, bestBid: bestBid, bestBidQnt: bestBidQnt, bestAsk: bestAsk, bestAskQnt: bestAskQnt } = ticker;
       let symbol = binanceMap[bsymbol];
-      if (symbol in this.priceData) {
-        if (!('binance' in this.priceData[symbol])) {
-          this.priceData[symbol].binance = {}
+      if (symbol in this.streamData) {
+        if (!('binance' in this.streamData[symbol])) {
+          this.streamData[symbol].binance = {}
         }
       } else {
-        this.priceData[symbol] = { 'binance': {} }
+        this.streamData[symbol] = { 'binance': {} }
       }
-      this.priceData[symbol].binance = { bids: [{ price: Number(bestBid), size: Number(bestBidQnt) }], asks: [{ price: Number(bestAsk), size: Number(bestAskQnt) }] }
-      // console.log(this.priceData[symbol].binance);
+      this.streamData[symbol].binance = { bids: [{ price: Number(bestBid), size: Number(bestBidQnt) }], asks: [{ price: Number(bestAsk), size: Number(bestAskQnt) }] }
+      // console.log(this.streamData[symbol].binance);
+      this.streamDataToPriceData(symbol, 'binance', this.streamData[symbol].binance);
     }
   } // binanceOrderbookRequest
 
@@ -413,7 +410,7 @@ class priceDataStreamClass {
       setTimeout(() => {
         console.log('scheduled reconnection of cex websocket connection');
         cex_ws.close();
-      }, config.scheduled_timer);
+      }, _config.scheduled_timer);
     })
 
     cex_ws.on('error', error => {
@@ -425,15 +422,16 @@ class priceDataStreamClass {
       let data = JSON.parse(msg);
       if (data.e === 'md') {
         let pair = data.data.pair.replace(':', '-');
-        if (pair in this.priceData) {
-          if (!('cex' in this.priceData[pair])) {
-            this.priceData[pair].cex = {}
+        if (pair in this.streamData) {
+          if (!('cex' in this.streamData[pair])) {
+            this.streamData[pair].cex = {}
           }
         } else {
-          this.priceData[pair] = { 'cex': {} }
+          this.streamData[pair] = { 'cex': {} }
         }
-        this.priceData[pair].cex = { bids: formatOrderbook(data.data.buy), asks: formatOrderbook(data.data.sell) };
-        //console.log(this.priceData[pair].cex.asks);
+        this.streamData[pair].cex = { bids: formatOrderbook(data.data.buy), asks: formatOrderbook(data.data.sell) };
+        //console.log(this.streamData[pair].cex.asks);
+        this.streamDataToPriceData(pair, 'cex', this.streamData[pair].cex);
       }
 
       if (data.e === 'connected') {
@@ -464,6 +462,29 @@ class priceDataStreamClass {
       return formattedData
     }
   } //cexOrderbookRequest
+
+  streamDataToPriceData(pair, exchange, pairData) {
+    const [s1, s2] = pair.split('-');
+    const bestBid = pairData.bids[0];
+    const bestAsk = pairData.asks[0];
+    const key1 = s1 + '-' + s2 + '-' + exchange;
+    const key2 = s2 + '-' + s1 + '-' + exchange;
+    const price1 = bestBid.price;
+    const price2 = 1 / bestAsk.price;
+    const mktSize1 = bestBid.size;
+    const mktSize2 = bestAsk.size / price2;
+    const accSize1 = 0;
+    const accSize2 = 0;
+    const tradeFee1 = 0.003;
+    const tradeFee2 = 0.003;
+    const depositFee1 = { add: 0, pc: 0 };
+    const depositFee2 = { add: 0, pc: 0 };
+    const withdrawalFee1 = { add: 0, pc: 0 };
+    const withdrawalFee2 = { add: 0, pc: 0 };
+    const timestamp = Date.now();
+    this.priceData[key1] = { price: price1, mktSize: mktSize1, accSize: accSize1, tradeFee: tradeFee1, depositFee: depositFee1, withdrawalFee: withdrawalFee1, timestamp: timestamp, tradeSide: "sell", tradeKey: key1 };
+    this.priceData[key2] = { price: price2, mktSize: mktSize2, accSize: accSize2, tradeFee: tradeFee2, depositFee: depositFee2, withdrawalFee: withdrawalFee2, timestamp: timestamp, tradeSide: "buy", tradeKey: key1 };
+  }
 
 }
 

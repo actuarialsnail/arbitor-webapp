@@ -13,11 +13,11 @@ function requestTradeLogs(date, cb) {
 }
 export { requestTradeLogs };
 
-function requestPriceData(cb) {
-  socket.on('priceData', data => cb(data));
-  socket.emit('requestPriceData', 1000);
+function requestStreamData(cb) {
+  socket.on('streamData', data => cb(data));
+  socket.emit('requestStreamData', 1000);
 }
-export { requestPriceData };
+export { requestStreamData };
 
 function requestBalanceData(key, cb) {
   socket.on('balanceData', data => cb(data));

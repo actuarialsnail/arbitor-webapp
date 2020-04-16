@@ -1,5 +1,5 @@
 import React from 'react';
-import { requestPriceData } from '../api';
+import { requestStreamData } from '../api';
 import Typography from '@material-ui/core/Typography';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
@@ -48,14 +48,14 @@ const testdata = {
 }
 
 export default function PriceFeed() {
-    const [priceData, setPriceData] = React.useState('no priceData yet');
+    const [streamData, setStreamData] = React.useState('no streamData yet');
     const [loaded, setLoaded] = React.useState(false);
     const classes = useStyles();
 
     React.useEffect(() => {
-        requestPriceData((data) => {
+        requestStreamData((data) => {
             //console.log(new Date(), data);
-            setPriceData(data);
+            setStreamData(data);
             setLoaded(true);
         });
     }, [])
@@ -63,14 +63,14 @@ export default function PriceFeed() {
     return (
         <React.Fragment>
             <Grid container spacing={3}>{
-                loaded && Object.keys(priceData).map(pair => {
+                loaded && Object.keys(streamData).map(pair => {
                     return (
                         <Grid item xs={12} sm={12} md={6} lg={4} xl={3} key={pair}>
                             <Card>
                                 <CardContent>
                                     <Typography component="h2" variant="h5" color="inherit">{pair}</Typography>
                                     {
-                                        Object.keys(priceData[pair]).map(exchange => {
+                                        Object.keys(streamData[pair]).map(exchange => {
                                             return (
                                                 <div className={classes.textBox} key={pair + exchange} >
                                                     <Typography variant="body2" className={classes.textExchange}>
@@ -78,11 +78,11 @@ export default function PriceFeed() {
                                                     </Typography>
                                                     <Avatar className={classes.small}>B</Avatar>
                                                     <Typography variant="body2" className={classes.textBid}>
-                                                        {('bids' in priceData[pair][exchange])? priceData[pair][exchange].bids[0].price : console.log('Error', pair, exchange, priceData[pair][exchange] )}
+                                                        {('bids' in streamData[pair][exchange])? streamData[pair][exchange].bids[0].price : console.log('Error', pair, exchange, streamData[pair][exchange] )}
                                                     </Typography>
                                                     <Avatar className={classes.small}>A</Avatar>
                                                     <Typography variant="body2" className={classes.textAsk}>
-                                                        {('asks' in priceData[pair][exchange])? priceData[pair][exchange].asks[0].price : console.log('Error', pair, exchange, priceData[pair][exchange] )}
+                                                        {('asks' in streamData[pair][exchange])? streamData[pair][exchange].asks[0].price : console.log('Error', pair, exchange, streamData[pair][exchange] )}
                                                     </Typography>
                                                 </div>
                                             )
