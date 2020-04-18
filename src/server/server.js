@@ -9,6 +9,10 @@ priceStream.masterStream();
 const balanceRequest = require('./balanceRequest');
 
 io.on('connection', (client) => {
+
+  let timer;
+  console.log(`client id: ${client.id} connected`);
+
   client.on('subscribeToTimer', (interval) => {
     console.log('client is subscribing to timer with interval ', interval);
     setInterval(() => {
@@ -51,9 +55,14 @@ io.on('connection', (client) => {
 
   client.on('requestStreamData', (interval) => {
     console.log('client is subscribing to data stream with interval ', interval);
-    setInterval(() => {
+    timer = setInterval(() => {
       client.emit('streamData', priceStream.streamData);
     }, interval);
+  })
+
+  client.on('cancelStreamData', () => {
+    console.log('client has unsubscribed to data stream');
+    clearInterval(timer);
   })
 
   client.on('requestBalanceData', (key) => {

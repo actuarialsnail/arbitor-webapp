@@ -1,5 +1,5 @@
 import React from 'react';
-import { requestStreamData } from '../api';
+import { requestStreamData, cancelStreamData } from '../api';
 import Typography from '@material-ui/core/Typography';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
@@ -58,6 +58,9 @@ export default function PriceFeed() {
             setStreamData(data);
             setLoaded(true);
         });
+        return () => {
+            cancelStreamData();
+        }
     }, [])
 
     return (
@@ -78,11 +81,11 @@ export default function PriceFeed() {
                                                     </Typography>
                                                     <Avatar className={classes.small}>B</Avatar>
                                                     <Typography variant="body2" className={classes.textBid}>
-                                                        {('bids' in streamData[pair][exchange])? streamData[pair][exchange].bids[0].price : console.log('Error', pair, exchange, streamData[pair][exchange] )}
+                                                        {('bids' in streamData[pair][exchange]) ? streamData[pair][exchange].bids[0].price : console.log('Error', pair, exchange, streamData[pair][exchange])}
                                                     </Typography>
                                                     <Avatar className={classes.small}>A</Avatar>
                                                     <Typography variant="body2" className={classes.textAsk}>
-                                                        {('asks' in streamData[pair][exchange])? streamData[pair][exchange].asks[0].price : console.log('Error', pair, exchange, streamData[pair][exchange] )}
+                                                        {('asks' in streamData[pair][exchange]) ? streamData[pair][exchange].asks[0].price : console.log('Error', pair, exchange, streamData[pair][exchange])}
                                                     </Typography>
                                                 </div>
                                             )

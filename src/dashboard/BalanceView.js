@@ -1,5 +1,5 @@
 import React from 'react';
-import { requestBalanceData } from '../api';
+import { requestBalanceData, cancelBalanceListener } from '../api';
 import Typography from '@material-ui/core/Typography';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
@@ -67,6 +67,9 @@ export default function BalanceView() {
             setBalanceData(ffBalanceData(data));
             setLoaded(true);
         });
+        return () => {
+            cancelBalanceListener();
+        }
     }, [])
 
     const ffBalanceData = (bData) => {
@@ -88,8 +91,8 @@ export default function BalanceView() {
         let uniqueCurrencyList = [...new Set(currencyList)];
         let ffData = []
         for (const exchangeData of fData) {
-            for (const currency of uniqueCurrencyList){
-                if (!exchangeData.hasOwnProperty(currency)){
+            for (const currency of uniqueCurrencyList) {
+                if (!exchangeData.hasOwnProperty(currency)) {
                     exchangeData[currency] = 0;
                 }
             }
@@ -101,7 +104,7 @@ export default function BalanceView() {
     const columnList = (list) => {
         let column = [{ title: 'Exchange', field: 'exchangeName' }];
         list.map(item => {
-            column.push({ title: item, field: item});
+            column.push({ title: item, field: item });
         })
         return column;
     }

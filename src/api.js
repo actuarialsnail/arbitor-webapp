@@ -13,14 +13,30 @@ function requestTradeLogs(date, cb) {
 }
 export { requestTradeLogs };
 
+function cancelTradeLogsListener() {
+  socket.off('tradeLogs');
+}
+export { cancelTradeLogsListener }
+
 function requestStreamData(cb) {
   socket.on('streamData', data => cb(data));
   socket.emit('requestStreamData', 1000);
 }
 export { requestStreamData };
 
+function cancelStreamData() {
+  socket.off('streamData');
+  socket.emit('cancelStreamData');
+}
+export { cancelStreamData };
+
 function requestBalanceData(key, cb) {
   socket.on('balanceData', data => cb(data));
   socket.emit('requestBalanceData', key);
 }
 export { requestBalanceData };
+
+function cancelBalanceListener() {
+  socket.off('balanceData');
+}
+export { cancelBalanceListener };

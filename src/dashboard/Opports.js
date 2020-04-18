@@ -2,7 +2,7 @@ import React from 'react';
 import 'date-fns';
 import { makeStyles } from '@material-ui/core/styles';
 import Title from './Title';
-import { requestTradeLogs } from '../api';
+import { requestTradeLogs, cancelTradeLogsListener } from '../api';
 import Grid from '@material-ui/core/Grid';
 import Log from './Log';
 import DateFnsUtils from '@date-io/date-fns';
@@ -125,6 +125,9 @@ export default function Opports() {
     let requestDate = today.toJSON().slice(0,10);
     setLoading(true);
     processTradeLogs(requestDate);
+    return () => {
+      cancelTradeLogsListener();
+    }
   }, []);
 
   if (!verificationLogs) {
