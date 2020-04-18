@@ -15,10 +15,10 @@ import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import Paper from '@material-ui/core/Paper';
 
-const data = [
-  {name: 'BTC (before)', coinfloor: 4000, coinbase: 2400, kraken: 2400, binance: 2400},
-  {name: 'BTC (after)',  coinfloor: 4100, coinbase: 2300, kraken: 2000, binance: 2800},
-];
+// const data = [
+//   {name: 'BTC (before)', coinfloor: 4000, coinbase: 2400, kraken: 2400, binance: 2400},
+//   {name: 'BTC (after)',  coinfloor: 4100, coinbase: 2300, kraken: 2000, binance: 2800},
+// ];
 
 const styles = theme => ({
     root: {
@@ -121,7 +121,7 @@ export default function Log(props) {
 }
 
 function TabPanel(props){
-  const { value, data, ...other } = props;
+  const { value, data } = props;
   const executionLogFilter = (log) => {
     if (log === null || log === undefined || Object.keys(log).length === 0){
       return "";

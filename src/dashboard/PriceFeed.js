@@ -43,10 +43,6 @@ const useStyles = makeStyles(theme => ({
     },
 }))
 
-const testdata = {
-
-}
-
 export default function PriceFeed() {
     const [streamData, setStreamData] = React.useState('no streamData yet');
     const [loaded, setLoaded] = React.useState(false);

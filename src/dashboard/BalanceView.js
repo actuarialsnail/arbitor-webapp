@@ -1,10 +1,6 @@
 import React from 'react';
 import { requestBalanceData, cancelBalanceListener } from '../api';
 import Typography from '@material-ui/core/Typography';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import Grid from '@material-ui/core/Grid';
-import Avatar from '@material-ui/core/Avatar';
 import { makeStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -62,7 +58,7 @@ export default function BalanceView() {
     const [text, setText] = React.useState('');
     const [loaded, setLoaded] = React.useState(false);
     React.useEffect(() => {
-        requestBalanceData(text, (data) => {
+        requestBalanceData('', (data) => {
             //console.log(new Date(), data);
             setBalanceData(ffBalanceData(data));
             setLoaded(true);
@@ -76,9 +72,9 @@ export default function BalanceView() {
         //console.log(bData)
         let fData = [];
         let currencyList = [];
-        Object.keys(bData).map(exchange => {
+        Object.keys(bData).forEach(exchange => {
             let rowData = {};
-            Object.keys(bData[exchange]).map(currency => {
+            Object.keys(bData[exchange]).forEach(currency => {
                 let balance = Number(bData[exchange][currency]);
                 if (balance > 0) {
                     rowData[currency] = balance;
@@ -103,7 +99,7 @@ export default function BalanceView() {
 
     const columnList = (list) => {
         let column = [{ title: 'Exchange', field: 'exchangeName' }];
-        list.map(item => {
+        list.forEach(item => {
             column.push({ title: item, field: item });
         })
         return column;
