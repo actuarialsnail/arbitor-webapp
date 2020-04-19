@@ -84,6 +84,7 @@ export default function Opports() {
   const processTradeLogs = date => {
       // request data according to date
       // process the tradeLogs using callback
+      cancelTradeLogsListener();
       requestTradeLogs(date, (err, tradeLogs) => {
         //tradeLogs = tradeLog_dummy; // to remove post testing
         if (err) {
