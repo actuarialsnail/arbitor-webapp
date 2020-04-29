@@ -15,7 +15,8 @@ const krakenMap = {
     'BAT-ETH': 'BATETH',
     'BAT-EUR': 'BATEUR',
     'XRP-BTC': 'XXRPXXBT',
-    'XRP-EUR': 'XXRPZEUR'
+    'XRP-EUR': 'XXRPZEUR',
+    'EUR-GBP': 'EURGBP'
 }
 
 const apiRequest = async (url, method, headers, body) => {
@@ -110,7 +111,8 @@ const batchExchangeInfoRequest = async () => {
         'BAT-ETH': 50,
         'BAT-EUR': 50,
         'XRP-BTC': 30,
-        'XRP-EUR': 30
+        'XRP-EUR': 30,
+        'EUR-GBP': 10,
     };
     const minAmt = {
         'BTC-GBP': 10,
@@ -126,7 +128,8 @@ const batchExchangeInfoRequest = async () => {
         'BAT-ETH': 0.02,
         'BAT-EUR': 10,
         'XRP-BTC': 0.002,
-        'XRP-EUR': 10
+        'XRP-EUR': 10,
+        'EUR-GBP': 10,
     }
     let krakenInfoUrl = 'https://api.kraken.com/0/public/AssetPairs';
     let krakenRes = await apiRequest(krakenInfoUrl, 'GET', null, null);
@@ -225,6 +228,18 @@ const request = async (callback) => {
 
 module.exports = { request, batchExchangeInfoRequest };
 
-// requestExchangeInfo((exchangeInfo) => {
-//     console.log(exchangeInfo.binance.maxSize);
-// });
+const prototype_mode = process.argv[2] || false;
+
+if (prototype_mode) {
+    request((exchangeData) => {
+        const fs = require('fs');
+        let tmstmp_currentSys = new Date();
+        let tmstmp_currentSysDate = tmstmp_currentSys.toJSON().slice(0, 10);
+        fs.writeFile('./log/exchangeData' + tmstmp_currentSysDate + '.json', JSON.stringify(exchangeData), (err) => {
+            if (err) {
+                console.log('Error occured when writing to file', { tmstmp_currentSys, err });
+            }
+        });
+        //console.log(exchangeData);
+    });
+}

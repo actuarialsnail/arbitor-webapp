@@ -229,6 +229,18 @@ const request = async (callback) => {
 
 module.exports = { request, batchApiBalanceRequest };
 
-// requestBalance((balance)=>{
-//     console.log(balance);
-// });
+const prototype_mode = process.argv[2] || false;
+
+if (prototype_mode) {
+    request((balance) => {
+        const fs = require('fs');
+        let tmstmp_currentSys = new Date();
+        let tmstmp_currentSysDate = tmstmp_currentSys.toJSON().slice(0, 10);
+        fs.writeFile('./log/balanceData' + tmstmp_currentSysDate + '.json', JSON.stringify(balance), (err) => {
+            if (err) {
+                console.log('Error occured when writing to file', { tmstmp_currentSys, err });
+            }
+        });
+        //console.log(balance);
+    });
+}

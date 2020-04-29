@@ -96,7 +96,7 @@ const calculateNetValue = (priceData) => {
         let tradeFeeArr = [], depositFeeArr = [], withdrawalFeeArr = [], tradeSideArr = [], tradeKeyArr = [], timestampArr = [];
         //console.log(priceData);
         for (let hop of route) {
-            const [symbol1, symbol2, exchange] = hop.split('-');
+            // const [symbol1, symbol2, exchange] = hop.split('-');
             const depositFeeInd = autoRebal ? 1 : 0;
             const withdrawalFeeInd = autoRebal;
 
@@ -126,6 +126,7 @@ const calculateNetValue = (priceData) => {
             // console.log(netValue);
         }
         priceArr.push(netValue);
+        timestampArr.push(Date.now());
 
         if (hasPrice && netValue > (showProfitOnly ? 1.001 : -100)) {
             const mktSizeArr = calculateSize(route, priceData, "market");
@@ -142,21 +143,25 @@ const calculateNetValue = (priceData) => {
 }
 
 const calculateSize = (route, priceData, type) => {
+    //console.log(`calculateSize: ${route}`);
     const sizeType = (type == "market") ? 'mktSize' : 'accSize';
     let netSize = 1;
-    let accPriceFactor = 1;
+    let accPriceFactor = 1; //should result in same value as netValue
     let sizeArr = [];
     for (let hop in route) {
         let route_seg = route[hop];
         let size = priceData[route_seg][sizeType];
+        let price = priceData[route_seg].price;
+        let tradeFee = priceData[route_seg].tradeFee;
         sizeArr.push(size);
         if (hop == 0) {
-            netSize = netSize * size;
+            netSize = netSize * size * price * (1 - tradeFee);
         } else {
-            accPriceFactor = accPriceFactor * priceData[route[hop - 1]]['price']; //for rebasing to first base currency
-            netSize = Math.min(netSize, size / accPriceFactor);
+            netSize = Math.min(netSize, size) * price * (1 - tradeFee);
         }
+        accPriceFactor = price * (1 - tradeFee)
     }
+    netSize = netSize / accPriceFactor; //rebase size to starting value
     sizeArr.push(netSize);
     return sizeArr;
 }

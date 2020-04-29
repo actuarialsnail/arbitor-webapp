@@ -1,8 +1,7 @@
 // price data streams (init + continuous)
 const priceDataStream = require('./priceDataStream');
 const priceStream = new priceDataStream();
-// price data restful (adhoc)
-const priceDataApi = require('./priceDataApi');
+
 
 // route calculate (timer)
 const routeCalculator = require('./routeCalculate');
@@ -17,12 +16,19 @@ const balanceRequest = require('./balanceRequest');
 // exchange info (init + adhoc)
 const exchangeInfo = require('./exchangeInfo');
 
-// trade validator and eExecutor (adhoc)
-const tradeValidator = require('./tradeValidate');
-const tradeExecutor = require('./tradeExecute');
+const oppsProcessor = require('./oppsProcessor');
+
+
 
 const interval = 1000;
-const cdThreshold = 30;
+const cdThreshold = 60; // seconds
+
+
+const sortArbitrageObjs = (arbitrageObjs) => {
+    return arbitrageObjs.sort((a, b) => {
+        return b['refValue'] - a['refValue'];
+    });
+}
 
 const masterController = async () => {
 
@@ -32,9 +38,11 @@ const masterController = async () => {
     let exchangeData = await exchangeInfo.batchExchangeInfoRequest();
     // console.log(exchangeData);
 
-
     // price data streams (init + continuous)
+    priceStream.updateProductProps(balanceData, exchangeData);
     priceStream.masterStream();
+
+    //TODO: add ability to update balance data into pricestream for easier route calc
 
     // timer (
     //  route calc return 1+
@@ -48,59 +56,58 @@ const masterController = async () => {
     // )
 
     let cooldown = cdThreshold;
+    let toRunOp = true;
 
     setInterval(() => {
 
         let tmstmp_currentSys = new Date();
         let tmstmp_currentSysDate = tmstmp_currentSys.toJSON().slice(0, 10);
 
-        //route calc function input priceStream.priceData output arbitrageObjs +ve only
-        //console.log(priceStream.priceData);
+        // route calc function input priceStream.priceData output arbitrageObjs +ve only
+        // console.log(priceStream.priceData);
         // console.time('routecalc');
         let arbitrageObjs = routeCalculator.calculateNetValue(priceStream.priceData);
         // console.log(tmstmp_currentSys, arbitrageObjs.length);
         // console.timeEnd('routecalc');
+
         if (arbitrageObjs.length > 0) {
-            fs.appendFile('./log/tradeLog' + tmstmp_currentSysDate + '.json', JSON.stringify(arbitrageObjs) + '\n', (err) => {
-                if (err) {
-                    console.log('Error occured when writing to tradelog', { tmstmp_currentSys, err });
-                }
-            });
-            // sort it
-            
+            for (arbObj of arbitrageObjs) {
+                fs.appendFile('./log/opportunity-' + tmstmp_currentSysDate + '.json', JSON.stringify(arbObj) + '\n', (err) => {
+                    if (err) {
+                        console.log('Error occured when writing to opportunity log', { tmstmp_currentSys, err });
+                    }
+                });
+            }
+
+            let sortedArbitrageObjs = sortArbitrageObjs(arbitrageObjs);
+
+            // execute process via callback to avoid clogging up controller
+            if (toRunOp && (cooldown <= 0)) {
+                toRunOp = false;
+                console.log('processing sorted opportunities')
+                oppsProcessor.digest(sortedArbitrageObjs, balanceData, exchangeData, async (verifyOutput, tradeRes, id) => {
+                    //eachOp
+                    if (verifyOutput)
+                        fs.appendFile('./log/validation-' + tmstmp_currentSysDate + '.json', JSON.stringify(verifyOutput) + '\n', (err) => {
+                            if (err) { console.log('Error occured when writing to validation log', { tmstmp_currentSys, err }); }
+                        });
+                    if (tradeRes)
+                        fs.appendFile('./log/execution-' + tmstmp_currentSysDate + '.json', JSON.stringify(tradeRes) + '\n', (err) => {
+                            if (err) { console.log('Error occured when writing to execution log', { tmstmp_currentSys, err }); }
+                        });
+                    console.log(`processed opportunity id ${id}`);
+                    if (tradeRes) { // to use tradeRes.tradeExecuted
+                        balanceData = await balanceRequest.batchApiBalanceRequest();
+                        cooldown = cdThreshold;
+                    };
+                }, () => { toRunOp = true; }) //endOp
+            }
+            if (cooldown > 0) { console.log(`sorted arb objects ready but opps processor in ${cooldown}s cooldown`) }
+            if (!toRunOp) { console.log('sorted arb objects ready but opps processor still busy...') }
         }
-        
-
-        // let sortedArbitrageObjs;
-        // let restfulCheck = true;
-        // sortedArbitrageObjs.forEach(item => {
-        //     if (item.price.slice(-1)[0] > this.tradeTrigger && this.cooldown <= 0) {
-
-        //         const priceApi = priceDataApi();
-        //         if (restfulCheck) {
-        //             // await request pricedata restful API
-        //             priceApi = {};
-        //             restfulCheck = false;
-        //         }
-
-        //         let isArbitrage = tradeValidator(item, priceApi, balanceData, exchangeData)
-        //         // check if second validation passes
-
-        //         // if passes
-        //         if (isArbitrage) {
-        //             let balanceData = await balanceRequest.batchApiBalanceRequest();
-        //             // call tradeExecutor await
-        //             cooldown = cdThreshold;
-        //             await tradeExecutor();
-        //             let balanceData = await balanceRequest.batchApiBalanceRequest();
-        //         }
-        //     }
-        // });
-        // cooldown--;
-        // mailer(tmstmp_currentSys);
-        
+        cooldown--;
+        // mailer(tmstmp_currentSys); //use time to build balance historical data
     }, interval)
-
 }
 
 module.exports = { masterController };
