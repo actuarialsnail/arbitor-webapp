@@ -81,6 +81,10 @@ io.on('connection', (client) => {
     }
 
   })
+
+  client.on('disconnect', (reason)=>{
+    console.log(`client id: ${client.id} disconnected: ${reason}`)
+  })
 });
 
 const port = 8000;

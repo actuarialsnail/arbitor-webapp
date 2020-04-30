@@ -10,10 +10,12 @@ class priceDataStreamClass {
     this.streamData = {};
     this.priceData = {};
     this.accSizeData = {};
+    this.exchangeData = {};
   }
 
   updateProductProps(balanceData, exchangeData) {
     this.accSizeData = balanceData;
+    this.exchangeData = exchangeData;
   }
 
   masterStream() {
@@ -480,8 +482,8 @@ class priceDataStreamClass {
     const mktSize2 = bestAsk.size / price2;
     const accSize1 = this.accSizeData[exchange][s1] || 0;
     const accSize2 = this.accSizeData[exchange][s2] || 0;
-    const tradeFee1 = 0.003;
-    const tradeFee2 = 0.003;
+    const tradeFee1 = this.exchangeData[exchange].tradeFee;
+    const tradeFee2 = this.exchangeData[exchange].tradeFee;
     const depositFee1 = { add: 0, pc: 0 };
     const depositFee2 = { add: 0, pc: 0 };
     const withdrawalFee1 = { add: 0, pc: 0 };

@@ -40,10 +40,16 @@ const apiRequest = async (url, method, headers, body) => {
 }
 
 const batchExchangeInfoRequest = async () => {
-    let exchangeInfo = {};
+    let exchangeInfo = {
+        coinfloor: { tradeFee: 0.003 },
+        coinbase: { tradeFee: 0.005 },
+        kraken: { tradeFee: 0.0026 },
+        binance: { tradeFee: 0.001 },
+        cex: { tradeFee: 0.0025 }
+    };
 
     // coinfloor
-    exchangeInfo.coinfloor = {}
+    // exchangeInfo.coinfloor = {}
     let coinfloor = {
         minSize: {
             'BTC-GBP': 0.0001,
@@ -73,7 +79,7 @@ const batchExchangeInfoRequest = async () => {
     exchangeInfo.coinfloor = coinfloor;
 
     // coinbase
-    exchangeInfo.coinbase = {};
+    // exchangeInfo.coinbase = {};
     let coinbase = {};
     let coinbaseInfoUrl = 'https://api.pro.coinbase.com/products';
     let coinbaseRes = await apiRequest(coinbaseInfoUrl, 'GET', null, null);
@@ -94,7 +100,7 @@ const batchExchangeInfoRequest = async () => {
     exchangeInfo.coinbase = coinbase;
 
     // kraken
-    exchangeInfo.kraken = {}
+    // exchangeInfo.kraken = {}
     let kraken = {};
     // Should be monitored through here: https://support.kraken.com/hc/en-us/articles/205893708-What-is-the-minimum-order-size-
     const minSize = {
@@ -152,7 +158,7 @@ const batchExchangeInfoRequest = async () => {
     exchangeInfo.kraken = kraken;
 
     // binance
-    exchangeInfo.binance = {};
+    // exchangeInfo.binance = {};
     let binance = {};
     let binanceInfoUrl = 'https://api.binance.com/api/v1/exchangeInfo';
     let binanceRes = await apiRequest(binanceInfoUrl, 'GET', null, null);
@@ -185,7 +191,7 @@ const batchExchangeInfoRequest = async () => {
     exchangeInfo.binance = binance;
 
     // cex
-    exchangeInfo.cex = {};
+    // exchangeInfo.cex = {};
     let cex = {};
     const cex_precision = {
         BTC: 8,
