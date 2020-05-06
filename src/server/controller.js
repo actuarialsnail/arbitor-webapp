@@ -29,10 +29,10 @@ const sortArbitrageObjs = (arbitrageObjs) => {
     });
 }
 
-const masterController = async () => {
+const masterController = async (testMode) => {
 
     // pre-load balance and exchange data
-    let balanceData = await balanceRequest.batchApiBalanceRequest();
+    let balanceData = testMode ? require('./log/balanceDataTest.json') : await balanceRequest.batchApiBalanceRequest();
     // console.log(balanceData);
     let exchangeData = await exchangeInfo.batchExchangeInfoRequest();
     // console.log(exchangeData);
@@ -84,19 +84,19 @@ const masterController = async () => {
             if (toRunOp && (cooldown <= 0)) {
                 toRunOp = false;
                 console.log('processing sorted opportunities')
-                oppsProcessor.digest(sortedArbitrageObjs, balanceData, exchangeData, async (verifyOutput, tradeRes, id) => {
+                oppsProcessor.digest(sortedArbitrageObjs, balanceData, exchangeData, testMode, async (verifyOutput, tradeRes, id) => {
                     //eachOp
                     if (verifyOutput)
                         fs.appendFile('./log/validation-' + tmstmp_currentSysDate + '.json', JSON.stringify(verifyOutput) + '\n', (err) => {
                             if (err) { console.log('Error occured when writing to validation log', { tmstmp_currentSys, err }); }
                         });
-                    if (tradeRes)
-                        fs.appendFile('./log/execution-' + tmstmp_currentSysDate + '.json', JSON.stringify(tradeRes) + '\n', (err) => {
-                            if (err) { console.log('Error occured when writing to execution log', { tmstmp_currentSys, err }); }
-                        });
                     console.log(`processed opportunity id ${id}`);
                     if (tradeRes) { // to use tradeRes.tradeExecuted
                         balanceData = await balanceRequest.batchApiBalanceRequest();
+                        tradeRes.balancePost = balanceData;
+                        fs.appendFile('./log/execution-' + tmstmp_currentSysDate + '.json', JSON.stringify(tradeRes) + '\n', (err) => {
+                            if (err) { console.log('Error occured when writing to execution log', { tmstmp_currentSys, err }); }
+                        });
                         priceStream.updateProductProps(balanceData, exchangeData);
                         cooldown = cdThreshold;
                     };
@@ -110,91 +110,93 @@ const masterController = async () => {
     }, interval)
 }
 
-// module.exports = { masterController };
-
-masterController();
-
 const io = require('socket.io')();
 const readline = require('readline');
 io.on('connection', (client) => {
 
-    let timer;
+    let timer, streamTimer;
     console.log(`client id: ${client.id} connected`);
-  
+
     client.on('subscribeToTimer', (interval) => {
-      console.log('client is subscribing to timer with interval ', interval);
-      setInterval(() => {
-        client.emit('timer', new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''));
-      }, interval);
+        console.log('client is subscribing to timer with interval ', interval);
+        timer = setInterval(() => {
+            client.emit('timer', new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''));
+        }, interval);
     });
-  
+
     client.on('requestTradeLogs', (date) => {
-      console.log('client is requesting data for:', date);
-      let tradeLogs = [];
-      let path = '../../../arbitorLog/tradeLog' + date + '.json';
-  
-      try {
-        if (fs.existsSync(path)) {
-          //file exists
-          const readInterface = readline.createInterface({
-            input: fs.createReadStream('../../../arbitorLog/tradeLog' + date + '.json'),
-            //output: process.stdout,
-            console: false
-          });
-  
-          readInterface.on('line', (line) => {
-            tradeLogs.push(JSON.parse(line))
-          });
-  
-          readInterface.on('close', () => {
-            //console.log(tradeLogs);
-            client.emit('tradeLogs', { data: tradeLogs, error: false });
-          })
-  
-        } else {
-          console.log('no files found')
-          client.emit('tradeLogs', { data: {}, error: 'no files found' });
+        console.log('client is requesting data for:', date);
+        let tradeLogs = [];
+        let path = '../../../arbitorLog/tradeLog' + date + '.json';
+
+        try {
+            if (fs.existsSync(path)) {
+                //file exists
+                const readInterface = readline.createInterface({
+                    input: fs.createReadStream('../../../arbitorLog/tradeLog' + date + '.json'),
+                    //output: process.stdout,
+                    console: false
+                });
+
+                readInterface.on('line', (line) => {
+                    tradeLogs.push(JSON.parse(line))
+                });
+
+                readInterface.on('close', () => {
+                    //console.log(tradeLogs);
+                    client.emit('tradeLogs', { data: tradeLogs, error: false });
+                })
+
+            } else {
+                console.log('no files found')
+                client.emit('tradeLogs', { data: {}, error: 'no files found' });
+            }
+        } catch (err) {
+            console.error(err)
+            client.emit('tradeLogs', { data: {}, error: err });
         }
-      } catch (err) {
-        console.error(err)
-        client.emit('tradeLogs', { data: {}, error: err });
-      }
     });
-  
+
     client.on('requestStreamData', (interval) => {
-      console.log('client is subscribing to data stream with interval ', interval);
-      timer = setInterval(() => {
-        client.emit('streamData', priceStream.streamData);
-      }, interval);
+        console.log('client is subscribing to data stream with interval ', interval);
+        streamTimer = setInterval(() => {
+            client.emit('streamData', priceStream.streamData);
+        }, interval);
     })
-  
+
     client.on('cancelStreamData', () => {
-      console.log('client has unsubscribed to data stream');
-      clearInterval(timer);
+        console.log('client has unsubscribed to data stream');
+        clearInterval(timer);
     })
-  
+
     client.on('requestBalanceData', (key) => {
-      console.log('client requested balance');
-      if (key === 'bs') {
-        balanceRequest.request((balance) => {
-          client.emit('balanceData', balance);
-        });
-      } else {
-        let dummy = {
-          'coinfloor': { 'GBP': 10 },
-          'coinbase': { 'GBP': 10 },
-          'binance': { 'GBP': 10 }
+        console.log('client requested balance');
+        if (key === 'bs') {
+            balanceRequest.request((balance) => {
+                client.emit('balanceData', balance);
+            });
+        } else {
+            let dummy = {
+                'coinfloor': { 'GBP': 10 },
+                'coinbase': { 'GBP': 10 },
+                'binance': { 'GBP': 10 }
+            }
+            client.emit('balanceData', dummy);
         }
-        client.emit('balanceData', dummy);
-      }
-  
+
     })
-  
-    client.on('disconnect', (reason)=>{
-      console.log(`client id: ${client.id} disconnected: ${reason}`)
+
+    client.on('disconnect', (reason) => {
+        clearInterval(timer);
+        clearInterval(streamTimer);
+        console.log(`client id: ${client.id} disconnected: ${reason}`)
     })
-  });
-  
-  const port = 8000;
-  io.listen(port);
-  console.log('listening on port ', port);
+});
+
+const port = 8000;
+io.listen(port);
+console.log('listening on port ', port);
+
+const prototype_mode = process.argv[2] || false;
+if (prototype_mode == 'test') console.log('prototype mode on...')
+masterController(prototype_mode);

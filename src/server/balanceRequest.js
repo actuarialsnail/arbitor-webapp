@@ -2,7 +2,6 @@ const config = require('./config/config');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
 const querystring = require('querystring')
-global.Headers = fetch.Headers;
 
 const binanceSignature = (query, keys) => {
     let hmac = crypto.createHmac('sha256', keys.secretKey);
@@ -60,7 +59,7 @@ const batchApiBalanceRequest = async () => {
 
     const coinbase_url = config.credential.coinbase.apiURL + '/accounts';
     let coinbase_timestamp = Date.now() / 1000;
-    coinbase_headers = {
+    const coinbase_headers = {
         'CB-ACCESS-KEY': config.credential.coinbase.apikey,
         'CB-ACCESS-SIGN': coinbaseSignature(coinbase_timestamp, 'GET', '/accounts', "", config.credential.coinbase.base64secret),
         'CB-ACCESS-TIMESTAMP': coinbase_timestamp,
@@ -231,7 +230,7 @@ module.exports = { request, batchApiBalanceRequest };
 
 const prototype_mode = process.argv[2] || false;
 
-if (prototype_mode) {
+if (prototype_mode == "true") {
     request((balance) => {
         const fs = require('fs');
         let tmstmp_currentSys = new Date();

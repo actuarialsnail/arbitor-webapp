@@ -1,5 +1,4 @@
 const WebSocket = require('ws');
-const scope = require('./config/scope');
 
 const _config = {
   scheduled_timer: 3600000 // hourly: 3600000 = 1000 *60 *60, 2 minutes: 120000
@@ -23,10 +22,11 @@ class priceDataStreamClass {
     this.coinbaseOrderbookRequest();
     this.binanceOrderbookRequest();
     this.krakenOrderbookRequest();
-    this.cexOrderbookRequest();
+    // this.cexOrderbookRequest();
   }
 
   coinfloorOrderbookRequest() {
+    let coinfloorTimeout;
     const request_WatchOrders = {
       tag: 1,
       method: "WatchOrders",
@@ -48,7 +48,7 @@ class priceDataStreamClass {
     coinfloor_ws.on('open', () => {
       console.log('coinfloor websocket connected at:', new Date());
       coinfloor_ws.send(JSON.stringify(request_WatchOrders));
-      setTimeout(() => {
+      coinfloorTimeout = setTimeout(() => {
         console.log('scheduled reconnection of coinfloor websocket connection');
         coinfloor_ws.close();
       }, _config.scheduled_timer);
@@ -81,6 +81,7 @@ class priceDataStreamClass {
 
     coinfloor_ws.on('close', () => {
       console.log('coinfloor websocket connection closed, reconnecting in 5s...');
+      clearTimeout(coinfloorTimeout);
       setTimeout(() => { this.coinfloorOrderbookRequest() }, 5000);
     })
 
@@ -88,7 +89,7 @@ class priceDataStreamClass {
 
       if (data.orders) {
         //create order book
-        data.orders.forEach((v, i) => {
+        data.orders.forEach((v) => {
           coinfloor_orderbook[v.id] = { price: v.price, quantity: v.quantity, time: v.time }
         })
         //console.log(orderbook);
@@ -134,6 +135,7 @@ class priceDataStreamClass {
   } // coinfloorOrderbookRequest
 
   krakenOrderbookRequest() {
+    let krakenTimeout;
     let kraken_orderbook = {};
     let kraken_depth = 10;
     const kraken_ws = new WebSocket('wss://ws.kraken.com');
@@ -154,7 +156,7 @@ class priceDataStreamClass {
     kraken_ws.on('open', () => {
       console.log('kraken websocket connected at:', new Date());
       kraken_ws.send(JSON.stringify(kraken_request));
-      setTimeout(() => {
+      krakenTimeout = setTimeout(() => {
         console.log('scheduled reconnection of kraken websocket connection');
         kraken_ws.close();
       }, _config.scheduled_timer);
@@ -212,6 +214,7 @@ class priceDataStreamClass {
 
     kraken_ws.on('close', () => {
       console.log('kraken websocket connection closed, reconnecting in 5s...');
+      clearTimeout(krakenTimeout);
       setTimeout(() => { this.krakenOrderbookRequest() }, 5000);
     })
 
@@ -250,6 +253,7 @@ class priceDataStreamClass {
   } // krakenOrderbookRequest
 
   coinbaseOrderbookRequest() {
+    let coinbaseTimeout;
     const product_list = ['BTC-GBP', 'ETH-GBP', 'BCH-GBP', 'LTC-GBP', 'BTC-EUR', 'ETH-EUR', 'BCH-EUR', 'LTC-EUR', 'ETH-BTC', 'BCH-BTC', 'LTC-BTC', 'BAT-ETH', 'XRP-BTC', 'XRP-EUR'];
     // const product_list = ['BTC-GBP'];
 
@@ -308,7 +312,7 @@ class priceDataStreamClass {
 
     coinbase_ws.on('open', function () {
       console.log('coinbase websocket connected at:', new Date());
-      setTimeout(function () {
+      coinbaseTimeout = setTimeout(function () {
         console.log('scheduled reconnection of coinbase websocket connection');
         try { coinbase_ws.disconnect() } catch (err) { console.log(err) };
       }, _config.scheduled_timer); //force restart websocke every hour - avoid ws freezing with no close event firing
@@ -358,11 +362,13 @@ class priceDataStreamClass {
 
     coinbase_ws.on('close', () => {
       console.log('coinbase websocket connection closed, reconnecting in 5s...');
+      clearTimeout(coinbaseTimeout);
       setTimeout(() => { this.coinbaseOrderbookRequest() }, 5000);
     });
   } // coinbase pro
 
   binanceOrderbookRequest() {
+    let binanceTimeout;
     const product_list = ['ETHBTC', 'BCHBTC', 'LTCBTC', 'LTCETH', 'BATBTC', 'BATETH', 'XRPBTC', 'BTCEUR', 'ETHEUR', 'XRPEUR'];
     const binanceMap = {};
     product_list.forEach(key => {
@@ -370,13 +376,14 @@ class priceDataStreamClass {
     })
     const binance = require('binance-api-node').default;
     const binanceClient = binance();
-    binanceClient.time().then(time => {
+    binanceClient.time().then(() => {
       let clean = binanceClient.ws.ticker(product_list, exchangeTicker)
       console.log('binance websocket connected at:', new Date());
-      setTimeout(() => {
+      binanceTimeout = setTimeout(() => {
         console.log('scheduled reconnection of binance websocket connection');
         clean();
         console.log('binance websocket connection closed, reconnecting in 5s...');
+        clearTimeout(binanceTimeout);
         setTimeout(() => { this.binanceOrderbookRequest(); }, 5000)
       }, _config.scheduled_timer);
     });
@@ -399,22 +406,15 @@ class priceDataStreamClass {
 
   cexOrderbookRequest() {
     const product_list = ['BTC-GBP', 'ETH-GBP', 'BCH-GBP', 'LTC-GBP', 'XRP-GBP', 'BTC-EUR', 'ETH-EUR', 'BCH-EUR', 'LTC-EUR', 'XRP-EUR', 'ETH-BTC', 'BCH-BTC', 'LTC-BTC', 'XRP-BTC', 'BAT-EUR'];
+    let cexTimeout;
     let payload = product_list.map(product => {
       return 'pair-' + product
     })
-    const pricescale = {
-      BTC: 8,
-      ETH: 6,
-      BCH: 8,
-      LTC: 8,
-      XRP: 6,
-      BAT: 6,
-    }
     const cex_ws = new WebSocket('wss://ws.cex.io/ws');
 
     cex_ws.on('open', () => {
       // console.log('cex connection established')
-      setTimeout(() => {
+      cexTimeout = setTimeout(() => {
         console.log('scheduled reconnection of cex websocket connection');
         cex_ws.close();
       }, _config.scheduled_timer);
@@ -459,6 +459,7 @@ class priceDataStreamClass {
 
     cex_ws.on('close', () => {
       console.log('cex websocket connection closed, reconnecting in 5s...');
+      clearTimeout(cexTimeout);
       setTimeout(() => { this.cexOrderbookRequest() }, 5000);
     })
 

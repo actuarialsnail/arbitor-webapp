@@ -1,50 +1,75 @@
-const executeTrade = async () => {
-    let execute_output = {
-        'type': 'execution'
+const config = require('./config/config');
+const fetch = require('node-fetch');
+const crypto = require('crypto');
+
+const balanceObjFilter = (balanceObj, route) => {
+    let filtered = {};
+    for (r of route) {
+        const [p1, p2, exchange] = r.split('-');
+        filtered[exchange] = {};
+        filtered[exchange][p1] = balanceObj[exchange][p1];
+        filtered[exchange][p2] = balanceObj[exchange][p2];
     }
-    let ts = new Date();
+    return filtered;
+}
+
+const krakenMap = {
+    'BTC-GBP': 'XXBTZGBP',
+    'ETH-GBP': 'XETHZGBP',
+    'BTC-EUR': 'XXBTZEUR',
+    'ETH-EUR': 'XETHZEUR',
+    'BCH-EUR': 'BCHEUR',
+    'LTC-EUR': 'XLTCZEUR',
+    'BCH-BTC': 'BCHXBT',
+    'ETH-BTC': 'XETHXXBT',
+    'LTC-BTC': 'XLTCXXBT',
+    'BAT-BTC': 'BATXBT',
+    'BAT-ETH': 'BATETH',
+    'BAT-EUR': 'BATEUR',
+    'XRP-BTC': 'XXRPXXBT',
+    'XRP-EUR': 'XXRPZEUR',
+    'EUR-GBP': 'EURGBP',
+}
+
+const execute = async (tradeObj, balanceData, trade_sandbox) => {
+    const ts = new Date();
+    let execute_output = {
+        'type': 'execution',
+        'timestamp': ts.toISOString(),
+        ...tradeObj,
+        'balancePrior': balanceObjFilter(balanceData, tradeObj.route)
+    }
 
     //prepare the order array
-    let order = this.tradeObj.route.map((val, index, arr) => {
+    let orders = tradeObj.route.map((order, index) => {
         let param = {}
-        param.exchange = val.split('-')[1];
-        param.pair = this.tradeObj.tradeKey[index].split('-')[0];
-        param.quantity_base = this.tradeObj.tradeSizeMax[index];
-        param.buysell = this.tradeObj.tradeSide[index];
+        const [p1, p2, exchange] = tradeObj.tradeKey[index].split('-');
+        param.exchange = exchange;
+        param.pair = p1 + '-' + p2;
+        param.quantity_base = tradeObj.tradeSizeMax[index];
+        param.buysell = tradeObj.tradeSide[index];
         return param;
     })
-
-    execute_output['timestamp'] = ts.toISOString();
-    execute_output['orderParams'] = order;
-
-    let balancePriorTrade = await this.batchApiBalanceRequest();
-    let balancePriorTradeFiltered = this.balanceObjFilter(balancePriorTrade);
-    execute_output['balancePrior'] = balancePriorTradeFiltered;
+    execute_output['orderParams'] = orders;
 
     // set up base inputs required for promise Arr
     // set up promise Arr based on optimised size management
-    let promiseArr = order.map((val, index, arr) => {
+    let promiseArr = orders.map((order) => {
         let param = {}
-        param.key = val.exchange;
-        let p1, p2;
-        switch (val.exchange) {
+        param.key = order.exchange;
+        let [p1, p2] = order.pair.split('-');
+        switch (order.exchange) {
             case 'coinfloor':
                 let coinfloor_endpoint = 'https://webapi.coinfloor.co.uk/bist/';
-                p1 = (val.pair.slice(0, 3) == 'BTC' ? 'XBT' : val.pair.slice(0, 3));
-                p2 = val.pair.slice(3, 6);
-                coinfloor_endpoint += p1 + '/' + p2 + (val.buysell == 'buy' ? '/buy_market/' : '/sell_market/');
+                p1 = p1 == 'BTC' ? 'XBT' : p1;
+                coinfloor_endpoint += p1 + '/' + p2 + (order.buysell == 'buy' ? '/buy_market/' : '/sell_market/');
 
-                const coinfloor_headers = new Headers();
-                if (this.trade_sandbox) {
-                    coinfloor_headers.set('Authorization', 'Basic ' + Buffer.from(config.credential.coinfloor_sandbox.userid + '/' + config.credential.coinfloor_sandbox.apikey + ":" + config.credential.coinfloor_sandbox.password).toString('base64'));
-                } else {
-                    coinfloor_headers.set('Authorization', 'Basic ' + Buffer.from(config.credential.coinfloor.userid + '/' + config.credential.coinfloor.apikey + ":" + config.credential.coinfloor.password).toString('base64'));
-                }
+                const coinfloor_cred = trade_sandbox ? 'coinfloor_sandbox' : 'coinfloor';
+                const coinfloor_headers = { 'Authorization': 'Basic ' + Buffer.from(config.credential[coinfloor_cred].userid + '/' + config.credential[coinfloor_cred].apikey + ":" + config.credential[coinfloor_cred].password).toString('base64') };
+
                 const { URLSearchParams } = require('url');
                 const cf_params = new URLSearchParams();
-                cf_params.append('quantity', 1);
-                // cf_params.append('amount', 1);
-                // cf_params.append('price', 1);
+                cf_params.append('quantity', 1); // quantiy/total for market orders, price/amount for limit orders
 
                 param.url = coinfloor_endpoint;
                 param.method = 'POST';
@@ -53,22 +78,23 @@ const executeTrade = async () => {
                 break;
 
             case 'coinbase':
-                const cb_private_url = (this.trade_sandbox ? 'https://api-public.sandbox.pro.coinbase.com/orders' : 'https://api.pro.coinbase.com/orders');
-                const coinbase_headers = new Headers();
-                let timestamp = Date.now() / 1000;
-                p1 = (val.pair.slice(0, 3));
-                p2 = val.pair.slice(3, 6);
+                const coinbase_timestamp = Date.now() / 1000;
                 const coinbase_body = {
-                    size: val.quantity_base,
+                    size: order.quantity_base,
                     type: 'market',
-                    side: val.buysell,
+                    side: order.buysell,
                     product_id: p1 + '-' + p2
                 }
-                coinbase_headers.set('CB-ACCESS-KEY', this.trade_sandbox ? config.credential.coinbase_sandbox.apikey : config.credential.coinbase.apikey);
-                coinbase_headers.set('CB-ACCESS-SIGN', this.coinbaseSignature(timestamp, 'POST', '/orders', JSON.stringify(coinbase_body), this.trade_sandbox ? config.credential.coinbase_sandbox.base64secret : config.credential.coinbase.base64secret));
-                coinbase_headers.set('CB-ACCESS-TIMESTAMP', timestamp);
-                coinbase_headers.set('CB-ACCESS-PASSPHRASE', this.trade_sandbox ? config.credential.coinbase_sandbox.passphrase : config.credential.coinbase.passphrase);
-                coinbase_headers.set('Content-Type', 'application/json');
+
+                const coinbase_cred = trade_sandbox ? 'coinbase_sandbox' : 'coinbase';
+                const cb_private_url = config.credential[coinbase_cred].apiURL + '/orders';
+                const coinbase_headers = {
+                    'CB-ACCESS-KEY': config.credential[coinbase_cred].apikey,
+                    'CB-ACCESS-SIGN': coinbaseSignature(coinbase_timestamp, 'POST', '/orders', JSON.stringify(coinbase_body), config.credential[coinbase_cred].base64secret),
+                    'CB-ACCESS-TIMESTAMP': coinbase_timestamp,
+                    'CB-ACCESS-PASSPHRASE': config.credential[coinbase_cred].passphrase,
+                    'Content-Type': 'application/json'
+                }
 
                 param.url = cb_private_url;
                 param.method = 'POST';
@@ -77,43 +103,45 @@ const executeTrade = async () => {
                 break;
 
             case 'binance':
-                let binance_burl = 'https://api.binance.com';
-                let binance_endpoint = (this.trade_sandbox ? '/api/v3/order/test' : '/api/v3/order');
+                const binance_burl = 'https://api.binance.com';
+                const binance_endpoint = (trade_sandbox ? '/api/v3/order/test' : '/api/v3/order');
 
-                let binance_headers = new Headers();
-                binance_headers.set('X-MBX-APIKEY', config.credential.binance.apiKey);
+                binance_headers = {
+                    'X-MBX-APIKEY': config.credential.binance.apiKey
+                };
 
-                let binance_dataQueryString = 'recvWindow=20000&timestamp=' + Date.now() + '&symbol=' + val.pair + '&side=' + val.buysell + '&type=market&quantity=' + val.quantity_base;
-                param.url = binance_burl + binance_endpoint + '?' + binance_dataQueryString + '&signature=' + this.binanceSignature(binance_dataQueryString, config.credential.binance);
+                const binance_dataQueryString = 'recvWindow=20000&timestamp=' + Date.now() + '&symbol=' + p1 + p2 + '&side=' + order.buysell + '&type=market&quantity=' + order.quantity_base;
+                param.url = binance_burl + binance_endpoint + '?' + binance_dataQueryString + '&signature=' + binanceSignature(binance_dataQueryString, config.credential.binance);
                 param.method = 'POST';
                 param.headers = binance_headers;
                 param.body = null;
                 break;
 
             case 'kraken':
-                let kraken_burl = 'https://api.kraken.com';
-                let kraken_path = '/0/private/AddOrder';
-                let nonce = new Date() * 1000;
-                let requestData = {
-                    pair: krakenMap[val.pair],
-                    type: val.buysell,
+                const kraken_burl = 'https://api.kraken.com';
+                const kraken_path = '/0/private/AddOrder';
+                const nonce = new Date() * 1000;
+                const requestData = {
+                    pair: krakenMap[order.pair],
+                    type: order.buysell,
                     ordertype: 'market',
-                    volume: val.quantity_base,
+                    volume: order.quantity_base,
                     nonce: nonce,
-                    validate: this.trade_sandbox,
+                    validate: trade_sandbox,
                 };
 
+                const signature = krakenSignature(kraken_path, requestData, config.credential.kraken.private_key, nonce);
+                const kraken_headers = {
+                    'User-Agent': 'Kraken Javascript API Client',
+                    'API-Key': config.credential.kraken.api,
+                    'API-Sign': signature,
+                    'Content-type': 'application/json',
+                }
+
                 param.url = kraken_burl + kraken_path;
+                param.headers = kraken_headers;
                 param.method = 'POST';
                 param.body = JSON.stringify(requestData);
-
-                let signature = this.krakenSignature(kraken_path, requestData, config.credential.kraken.private_key, nonce);
-                let kraken_headers = new Headers();
-                kraken_headers.set('User-Agent', 'Kraken Javascript API Client');
-                kraken_headers.set('API-Key', config.credential.kraken.api);
-                kraken_headers.set('API-Sign', signature);
-                kraken_headers.set('Content-type', 'application/json');
-                param.headers = kraken_headers;
                 break;
 
             case 'cex':
@@ -121,18 +149,14 @@ const executeTrade = async () => {
                 break;
 
             default:
+                console.log('unknown exchange requested');
                 break;
         }
-        //this.log(param);
         return param;
     });
 
-    let tradeRes = await this.batchApiOrderExecuteRequest(promiseArr);
+    const tradeRes = await batchApiOrderExecuteRequest(promiseArr);
     execute_output['tradeRes'] = tradeRes
-
-    let balancePostTrade = await this.batchApiBalanceRequest();
-    let balancePostTradeFiltered = this.balanceObjFilter(balancePostTrade);
-    execute_output['balancePost'] = balancePostTradeFiltered;
 
     return execute_output;
 }
@@ -146,13 +170,11 @@ const apiRequest = async (url, method, headers, body) => {
             body: body
         });
         catch_res = response;
-        //this.log(response);
         const json = await response.json();
-        //this.log(json)
         return json;
     } catch (error) {
         let time = Date();
-        this.log(JSON.stringify({ time, location: 'apiRequest', error, catch_res }, null, 4));
+        console.log(JSON.stringify({ time, location: 'apiRequest', error, catch_res }, null, 4));
         return (error);
     }
 }
@@ -160,7 +182,7 @@ const apiRequest = async (url, method, headers, body) => {
 const batchApiOrderExecuteRequest = async (promiseArr) => {
     let orderExecuteRes = [];
     orderExecuteRes = await Promise.all(promiseArr.map(async (req, index, arr) => {
-        let apiRes = await this.apiRequest(req.url, req.method, req.headers, req.body);
+        let apiRes = await apiRequest(req.url, req.method, req.headers, req.body);
         return { [req.key]: apiRes };
     }));
     return orderExecuteRes;
@@ -193,3 +215,46 @@ const krakenSignature = (path, request, secret, nonce) => {
     const hmac_digest = hmac.update(path + hash_digest, 'binary').digest('base64');
     return hmac_digest;
 };
+
+module.exports = { execute };
+
+const prototype_mode = process.argv[2] || false;
+
+if (prototype_mode == "true") {
+
+    const fs = require('fs');
+    const readline = require('readline');
+    const balanceData = require('./log/balanceData2020-04-26.json');
+    let validationLogs = [];
+    let path = './log/validation-test.json'
+
+    try {
+        if (fs.existsSync(path)) {
+            //file exists
+            const readInterface = readline.createInterface({
+                input: fs.createReadStream(path),
+                //output: process.stdout,
+                console: false
+            });
+
+            readInterface.on('line', (line) => {
+                validationLogs.push(JSON.parse(line))
+            });
+
+            readInterface.on('close', async () => {
+                console.log(`Validation records to run: ${validationLogs.length}`);
+                for (verifyOutput of validationLogs){
+                    if (verifyOutput.status){
+                        const tradeRes = await execute(verifyOutput, balanceData, true);
+                        console.log(JSON.stringify(tradeRes.tradeRes));
+                    }
+                }
+            })
+
+        } else {
+            console.log('no files found')
+        }
+    } catch (err) {
+        console.error(err)
+    }
+}

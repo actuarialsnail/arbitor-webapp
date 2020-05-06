@@ -1,5 +1,4 @@
 const fetch = require('node-fetch');
-global.Headers = fetch.Headers;
 
 const krakenMap = {
     'BTC-GBP': 'XXBTZGBP',
@@ -236,7 +235,7 @@ module.exports = { request, batchExchangeInfoRequest };
 
 const prototype_mode = process.argv[2] || false;
 
-if (prototype_mode) {
+if (prototype_mode == true) {
     request((exchangeData) => {
         const fs = require('fs');
         let tmstmp_currentSys = new Date();

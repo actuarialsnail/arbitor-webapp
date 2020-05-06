@@ -9,7 +9,7 @@ const tradeTrigger_pc = 1.005 // 0.5% and above
 const tradeTrigger_val = 0 // ref 0.0001 ~ £0.5 @ £5000/btc
 const batch_limit = 5 //max number of validations per cycle/batch
 
-const digest = async (sortedArbitrageObjs, balanceData, exchangeData, eachOp, endOp) => {
+const digest = async (sortedArbitrageObjs, balanceData, exchangeData, testMode, eachOp, endOp) => {
     let index = 0;
     console.time('cycle');
     for (opportunity of sortedArbitrageObjs) {
@@ -20,7 +20,7 @@ const digest = async (sortedArbitrageObjs, balanceData, exchangeData, eachOp, en
         let opportunity_id = opportunity.route.join('-') + '-' + opportunity.timestamp.slice(-1)[0];
         console.log(`Validating item ${index + 1}...${opportunity_id}`);
 
-        // check refValue (abs nominal) or relative? above threshold, and cooldown
+        // check refValue (abs nominal) or relative? above threshold
         if (opportunity.refValue >= tradeTrigger_val && return_pc >= tradeTrigger_pc) {
             console.log(`Item ${index + 1}...${opportunity_id} passed minimum filter`);
             console.time(opportunity_id);
@@ -33,11 +33,8 @@ const digest = async (sortedArbitrageObjs, balanceData, exchangeData, eachOp, en
             console.timeEnd(opportunity_id);
             let tradeRes;
             if (verifyOutput.status) {
-                console.log(`Opportunity validation passed...${opportunity_id}`)
-                // console.log('Balance prior', balanceData);
-                // call tradeExecutor await
-                // cooldown = cdThreshold;
-                // let res = await tradeExecutor(verifyOutput);
+                console.log(`Opportunity validation passed...${opportunity_id}`);
+                tradeRes = await tradeExecutor(verifyOutput, balanceData, testMode);
                 eachOp(verifyOutput, tradeRes, opportunity_id);
                 endOp();
                 // console.log('Balance post', balanceData);
@@ -60,7 +57,7 @@ module.exports = { digest };
 
 const prototype_mode = process.argv[2] || false;
 
-if (prototype_mode) {
+if (prototype_mode == true) {
     const fs = require('fs');
     const readline = require('readline');
     const balanceData = require('./log/balanceData2020-04-26.json');
