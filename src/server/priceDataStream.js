@@ -22,7 +22,7 @@ class priceDataStreamClass {
     this.coinbaseOrderbookRequest();
     this.binanceOrderbookRequest();
     this.krakenOrderbookRequest();
-    // this.cexOrderbookRequest();
+    this.cexOrderbookRequest();
   }
 
   coinfloorOrderbookRequest() {
