@@ -3,6 +3,8 @@ import './App.css';
 import Opports from './dashboard/Opports';
 import PriceFeed from './dashboard/PriceFeed';
 import BalanceView from './dashboard/BalanceView';
+import TradeTools from './dashboard/TradeTools';
+import Snapshot from './dashboard/Snapshot';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Frame from './dashboard/Frame';
 import { makeStyles } from '@material-ui/core/styles';
@@ -56,6 +58,12 @@ export default function App() {
                 </Route>
                 <Route path="/balance">
                   <BalanceView />
+                </Route>
+                <Route path="/tradetools">
+                  <TradeTools />
+                </Route>
+                <Route path="/snapshot">
+                  <Snapshot />
                 </Route>
                 <Route path="/">
                   <Home />

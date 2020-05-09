@@ -33,7 +33,7 @@ const apiRequest = async (url, method, headers, body) => {
         return json;
     } catch (error) {
         let time = Date();
-        this.log(JSON.stringify({ time, location: 'apiRequest', error, catch_res }, null, 4));
+        console.log(JSON.stringify({ time, location: 'apiRequest', error, catch_res }, null, 4));
         return (error);
     }
 }
@@ -75,7 +75,7 @@ const batchExchangeInfoRequest = async () => {
             // 'ETH-GBP': 0,
         }
     }
-    exchangeInfo.coinfloor = coinfloor;
+    exchangeInfo.coinfloor = {...coinfloor, ...exchangeInfo.coinfloor};
 
     // coinbase
     // exchangeInfo.coinbase = {};
@@ -96,7 +96,7 @@ const batchExchangeInfoRequest = async () => {
         // note that the price lmits (quote_increment) are for limit orders, market orders take size or funds as parameters
         // coinbase.stepAmt[key] = Math.max(element.quote_increment.indexOf('1') - 1, 0);
     });
-    exchangeInfo.coinbase = coinbase;
+    exchangeInfo.coinbase = {...coinbase, ...exchangeInfo.coinbase};
 
     // kraken
     // exchangeInfo.kraken = {}
@@ -154,7 +154,7 @@ const batchExchangeInfoRequest = async () => {
             kraken.stepAmt[pair] = krakenRes.result[krakenMap[pair]].pair_decimals;
         }
     })
-    exchangeInfo.kraken = kraken;
+    exchangeInfo.kraken = {...kraken, ...exchangeInfo.kraken};
 
     // binance
     // exchangeInfo.binance = {};
@@ -187,10 +187,10 @@ const batchExchangeInfoRequest = async () => {
             }
         })
     });
-    exchangeInfo.binance = binance;
+    exchangeInfo.binance = {...binance, ...exchangeInfo.binance};
 
     // cex
-    // exchangeInfo.cex = {};
+    exchangeInfo.cex = {};
     let cex = {};
     const cex_precision = {
         BTC: 8,
@@ -221,7 +221,7 @@ const batchExchangeInfoRequest = async () => {
         cex.maxAmt[symbol] = pair.minLotSizeS2 * 1000000;
         cex.stepAmt[symbol] = cex_precision[pair.symbol2];
     })
-    exchangeInfo.cex = cex;
+    exchangeInfo.cex = {...cex, ...exchangeInfo.cex};
 
     return exchangeInfo;
 }
@@ -235,7 +235,8 @@ module.exports = { request, batchExchangeInfoRequest };
 
 const prototype_mode = process.argv[2] || false;
 
-if (prototype_mode == true) {
+if (prototype_mode == 'true') {
+    console.log('exchange info request prototype mode on...')
     request((exchangeData) => {
         const fs = require('fs');
         let tmstmp_currentSys = new Date();

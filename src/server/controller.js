@@ -23,11 +23,19 @@ const interval = 1000;
 const cdThreshold = 60; // seconds
 
 
+const cmp = (a, b) => {
+    if (a > b) return +1;
+    if (a < b) return -1;
+    return 0;
+}
+
 const sortArbitrageObjs = (arbitrageObjs) => {
     return arbitrageObjs.sort((a, b) => {
-        return b['refValue'] - a['refValue'];
+        return cmp(b.refValue, a.refValue) || cmp(b.price.slice(-1)[0], a.price.slice(-1)[0]);
     });
 }
+
+let sortedArbitrageObjs = [];
 
 const masterController = async (testMode) => {
 
@@ -41,19 +49,6 @@ const masterController = async (testMode) => {
     priceStream.updateProductProps(balanceData, exchangeData);
     priceStream.masterStream();
 
-    //TODO: add ability to update balance data into pricestream for easier route calc
-
-    // timer (
-    //  route calc return 1+
-    //  log all async ...array
-    //  sort by refMult
-    //  loop through sorted and filtered, if above trade threshold
-    //          (1. cooldown, 2. await requset pricedata restful API
-    //           3. validate, if validate true call tradeExecutor and break loop)
-    //  
-    //  nodemailer analysis
-    // )
-
     let cooldown = cdThreshold;
     let toRunOp = true;
 
@@ -61,24 +56,29 @@ const masterController = async (testMode) => {
 
         let tmstmp_currentSys = new Date();
         let tmstmp_currentSysDate = tmstmp_currentSys.toJSON().slice(0, 10);
-
+        let filteredArbitrageObjs = [];
         // route calc function input priceStream.priceData output arbitrageObjs +ve only
         // console.log(priceStream.priceData);
         // console.time('routecalc');
         let arbitrageObjs = routeCalculator.calculateNetValue(priceStream.priceData);
         // console.log(tmstmp_currentSys, arbitrageObjs.length);
-        // console.timeEnd('routecalc');
 
-        if (arbitrageObjs.length > 0) {
-            for (arbObj of arbitrageObjs) {
+        sortedArbitrageObjs = sortArbitrageObjs(arbitrageObjs);
+
+        for (arbObj of sortedArbitrageObjs) {
+            if (arbObj.price.slice(-1)[0] > 1.001) {
+                filteredArbitrageObjs.push(arbObj);
                 fs.appendFile('./log/opportunity-' + tmstmp_currentSysDate + '.json', JSON.stringify(arbObj) + '\n', (err) => {
                     if (err) {
                         console.log('Error occured when writing to opportunity log', { tmstmp_currentSys, err });
                     }
                 });
             }
+        }
 
-            let sortedArbitrageObjs = sortArbitrageObjs(arbitrageObjs);
+        // console.timeEnd('routecalc');
+
+        if (filteredArbitrageObjs.length > 0) {
 
             // execute process via callback to avoid clogging up controller
             if (toRunOp && (cooldown <= 0)) {
@@ -114,7 +114,7 @@ const io = require('socket.io')();
 const readline = require('readline');
 io.on('connection', (client) => {
 
-    let timer, streamTimer;
+    let timer, streamTimer, snapshotTimer;
     console.log(`client id: ${client.id} connected`);
 
     client.on('subscribeToTimer', (interval) => {
@@ -186,9 +186,22 @@ io.on('connection', (client) => {
 
     })
 
+    client.on('requestSnapshotData', (data) => {
+        console.log('client requested snapshot data');
+        snapshotTimer = setInterval(() => {
+            client.emit('snapshotData', sortedArbitrageObjs.slice(0, data.size));
+        }, data.interval);
+    })
+
+    client.on('cancelSnapshotData', () => {
+        console.log('client has unsubscribed to snapshot data');
+        clearInterval(snapshotTimer);
+    })
+
     client.on('disconnect', (reason) => {
         clearInterval(timer);
         clearInterval(streamTimer);
+        clearInterval(snapshotTimer);
         console.log(`client id: ${client.id} disconnected: ${reason}`)
     })
 });

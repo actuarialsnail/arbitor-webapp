@@ -83,6 +83,7 @@ const autoRebal = false;
 const strictTmstmpInd = false;
 const strictTmstmpLimit = 1e5; // 10s
 const showProfitOnly = true;
+const minMonitoringLevel = 0.8;
 
 const calculateNetValue = (priceData) => {
 
@@ -93,12 +94,13 @@ const calculateNetValue = (priceData) => {
         let hasPrice = true;
         let netValue = 1;
         let priceArr = [];
-        let tradeFeeArr = [], depositFeeArr = [], withdrawalFeeArr = [], tradeSideArr = [], tradeKeyArr = [], timestampArr = [];
+        let tradeFeeArr = [], tradeSideArr = [], tradeKeyArr = [], timestampArr = [];
+        // let depositFeeArr = [], withdrawalFeeArr = [];
         //console.log(priceData);
         for (let hop of route) {
             // const [symbol1, symbol2, exchange] = hop.split('-');
-            const depositFeeInd = autoRebal ? 1 : 0;
-            const withdrawalFeeInd = autoRebal;
+            // const depositFeeInd = autoRebal ? 1 : 0;
+            // const withdrawalFeeInd = autoRebal;
 
             if (!hasPrice) break;
             if (!priceData.hasOwnProperty(hop)) {
@@ -107,35 +109,45 @@ const calculateNetValue = (priceData) => {
             } else {
                 // console.log('property found');
             }
-            const { price, tradeFee, depositFee, withdrawalFee, tradeSide, tradeKey, timestamp } = priceData[hop];
+            // const { price, tradeFee, depositFee, withdrawalFee, tradeSide, tradeKey, timestamp } = priceData[hop];
+            const { price, tradeFee, tradeSide, tradeKey, timestamp } = priceData[hop];
 
             if (strictTmstmpInd && tmStmpSystem - timestamp > strictTmstmpLimit) {
                 hasPrice = false; break;
             }//stale priceData
 
-            priceArr.push(price); tradeFeeArr.push(tradeFee); depositFeeArr.push(depositFee); withdrawalFeeArr.push(withdrawalFee); tradeSideArr.push(tradeSide); tradeKeyArr.push(tradeKey); timestampArr.push(timestamp);
+            priceArr.push(price); tradeFeeArr.push(tradeFee); tradeSideArr.push(tradeSide); tradeKeyArr.push(tradeKey); timestampArr.push(timestamp);
+            // depositFeeArr.push(depositFee); withdrawalFeeArr.push(withdrawalFee); 
+            
+            // if (autoRebal) {
+            //     // deposit and withdrawaml fees (add and mult) are zero if pre/proceeding exhcanges are the same respecively
+            // }
 
-            if (autoRebal) {
-                // deposit and withdrawaml fees (add and mult) are zero if pre/proceeding exhcanges are the same respecively
-            }
-
-            netValue = ((netValue - depositFee.add * depositFeeInd) * (1 - depositFee.pc * depositFeeInd) * price * (1 - tradeFee) * (1 - withdrawalFee.pc * withdrawalFeeInd)) - withdrawalFee.add * withdrawalFeeInd;
+            // netValue = ((netValue - depositFee.add * depositFeeInd) * (1 - depositFee.pc * depositFeeInd) * price * (1 - tradeFee) * (1 - withdrawalFee.pc * withdrawalFeeInd)) - withdrawalFee.add * withdrawalFeeInd;
+            netValue = netValue * price * (1 - tradeFee);
         }  // for each hop
-        if (hasPrice) {
-            // console.log('has price');
+        // if (hasPrice) {
+            // console.log(`${route} has price`);
             // console.log(netValue);
-        }
+        // }
         priceArr.push(netValue);
-        timestampArr.push(Date.now());
+        timestampArr.push(tmStmpSystem);
 
-        if (hasPrice && netValue > (showProfitOnly ? 1.001 : -100)) {
-            const mktSizeArr = calculateSize(route, priceData, "market");
-            const accSizeArr = calculateSize(route, priceData, "account");
+        if (hasPrice && netValue > minMonitoringLevel) {
+            let mktSizeArr, accSizeArr;
+            if (netValue > showProfitOnly ? 1.001 : -100) {
+                mktSizeArr = calculateSize(route, priceData, "market");
+                accSizeArr = calculateSize(route, priceData, "account");
+            } else {
+                mktSizeArr = priceData.mktSize;
+                accSizeArr = priceData.accSize;
+            }
             const startSize = Math.min(mktSizeArr.slice(-1)[0], accSizeArr.slice(-1)[0]);
             const startCurrency = refMultMap[route[0].split('-')[0]];
             const refMult = startCurrency == 'reference' ? 1 : priceData[startCurrency] != undefined ? priceData[startCurrency].price : -1;
             const refValue = netValue * startSize * refMult;
-            arbitrageObjs.push({ route, price: priceArr, mktSize: mktSizeArr, accSize: accSizeArr, timestamp: timestampArr, tradeFee: tradeFeeArr, depositFee: depositFeeArr, withdrawalFee: withdrawalFeeArr, tradeSide: tradeSideArr, tradeKey: tradeKeyArr, refMult, refValue });
+            // arbitrageObjs.push({ route, price: priceArr, mktSize: mktSizeArr, accSize: accSizeArr, timestamp: timestampArr, tradeFee: tradeFeeArr, depositFee: depositFeeArr, withdrawalFee: withdrawalFeeArr, tradeSide: tradeSideArr, tradeKey: tradeKeyArr, refMult, refValue });
+            arbitrageObjs.push({ route, price: priceArr, mktSize: mktSizeArr, accSize: accSizeArr, timestamp: timestampArr, tradeFee: tradeFeeArr, tradeSide: tradeSideArr, tradeKey: tradeKeyArr, refMult, refValue });
         }
     } // for each route
 

@@ -40,3 +40,15 @@ function cancelBalanceListener() {
   socket.off('balanceData');
 }
 export { cancelBalanceListener };
+
+function requestSnapshot(size, cb) {
+  socket.on('snapshotData', data => cb(data));
+  socket.emit('requestSnapshotData', { interval: 1000, size });
+}
+export { requestSnapshot };
+
+function cancelSnapshotData() {
+  socket.off('snapshotData');
+  socket.emit('cancelSnapshotData');
+}
+export { cancelSnapshotData };

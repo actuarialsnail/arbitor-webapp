@@ -485,13 +485,15 @@ class priceDataStreamClass {
     const accSize2 = this.accSizeData[exchange][s2] || 0;
     const tradeFee1 = this.exchangeData[exchange].tradeFee;
     const tradeFee2 = this.exchangeData[exchange].tradeFee;
-    const depositFee1 = { add: 0, pc: 0 };
-    const depositFee2 = { add: 0, pc: 0 };
-    const withdrawalFee1 = { add: 0, pc: 0 };
-    const withdrawalFee2 = { add: 0, pc: 0 };
+    // const depositFee1 = { add: 0, pc: 0 };
+    // const depositFee2 = { add: 0, pc: 0 };
+    // const withdrawalFee1 = { add: 0, pc: 0 };
+    // const withdrawalFee2 = { add: 0, pc: 0 };
     const timestamp = Date.now();
-    this.priceData[key1] = { price: price1, mktSize: mktSize1, accSize: accSize1, tradeFee: tradeFee1, depositFee: depositFee1, withdrawalFee: withdrawalFee1, timestamp: timestamp, tradeSide: "sell", tradeKey: key1 };
-    this.priceData[key2] = { price: price2, mktSize: mktSize2, accSize: accSize2, tradeFee: tradeFee2, depositFee: depositFee2, withdrawalFee: withdrawalFee2, timestamp: timestamp, tradeSide: "buy", tradeKey: key1 };
+    // this.priceData[key1] = { price: price1, mktSize: mktSize1, accSize: accSize1, tradeFee: tradeFee1, depositFee: depositFee1, withdrawalFee: withdrawalFee1, timestamp: timestamp, tradeSide: "sell", tradeKey: key1 };
+    // this.priceData[key2] = { price: price2, mktSize: mktSize2, accSize: accSize2, tradeFee: tradeFee2, depositFee: depositFee2, withdrawalFee: withdrawalFee2, timestamp: timestamp, tradeSide: "buy", tradeKey: key1 };
+    this.priceData[key1] = { price: price1, mktSize: mktSize1, accSize: accSize1, tradeFee: tradeFee1, timestamp: timestamp, tradeSide: "sell", tradeKey: key1 };
+    this.priceData[key2] = { price: price2, mktSize: mktSize2, accSize: accSize2, tradeFee: tradeFee2, timestamp: timestamp, tradeSide: "buy", tradeKey: key1 };
   }
 
 }
