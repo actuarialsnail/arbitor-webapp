@@ -171,8 +171,9 @@ if (cluster.isMaster) {
     
         client.on('requestSnapshotData', (data) => {
             console.log('client requested snapshot data');
+            const size = Math.max(data.size, 30);
             snapshotTimer = setInterval(() => {
-                client.emit('snapshotData', sortedArbitrageObjs.slice(0, data.size));
+                client.emit('snapshotData', sortedArbitrageObjs.slice(0, size));
             }, data.interval);
         })
     
@@ -197,7 +198,9 @@ if (cluster.isMaster) {
     console.log('Worker started with pid:', process.pid, 'and id:', process.env.workerId);
     let id = process.env.workerId;
 
-    const cdThreshold = 60; // seconds
+    const interval = 500;
+    const cdThreshold = 60; // ticks initial and post-trade cool down
+    const minFilterLevel = 1.001 // filter on sorted arbObjs for oppsProcessor
     let cooldown = cdThreshold;
     let toRunOp = true;
 
@@ -221,7 +224,7 @@ if (cluster.isMaster) {
                     type: 'priceDataStream',
                     res: { priceData: priceStream.priceData, streamData: priceStream.streamData },
                 })
-            }, 500)
+            }, interval)
         }
 
         if (msg.task == 'priceDataStreamUpdateProps' && jobMap[id] == 'priceDataStream') {
@@ -230,7 +233,7 @@ if (cluster.isMaster) {
 
         if (msg.task == 'routeCalculate' && jobMap[id] == msg.task) {
             //console.log('Message from master:', msg.task);
-            console.time('routecalc');
+            // console.time('routecalc');
             const cmp = (a, b) => {
                 if (a > b) return +1;
                 if (a < b) return -1;
@@ -251,7 +254,7 @@ if (cluster.isMaster) {
             let sortedArbitrageObjs = sortArbitrageObjs(arbitrageObjs);
 
             for (const arbObj of sortedArbitrageObjs) {
-                if (arbObj.price.slice(-1)[0] > 1.001) {
+                if (arbObj.price.slice(-1)[0] > minFilterLevel) {
                     filteredArbitrageObjs.push(arbObj);
                 }
             }
@@ -268,12 +271,15 @@ if (cluster.isMaster) {
                     }
                 });
             } // process logging
-            console.timeEnd('routecalc');
+            // console.timeEnd('routecalc');
         }
 
         if (msg.task == 'oppsProcessor' && jobMap[id] == msg.task) {
             //console.log('Message from master:', msg.task);
             const { filteredArbitrageObjs, balanceData, exchangeData, testMode } = msg.body;
+            let tmstmp_currentSys = new Date();
+            let tmstmp_currentSysDate = tmstmp_currentSys.toJSON().slice(0, 10);
+            
             if (filteredArbitrageObjs.length > 0) {
                 // execute process via callback to avoid clogging up controller
                 if (toRunOp && (cooldown <= 0)) {
@@ -286,7 +292,7 @@ if (cluster.isMaster) {
                                 if (err) { console.log('Error occured when writing to validation log', { tmstmp_currentSys, err }); }
                             });
                         console.log(`processed opportunity id ${id}`);
-                        if (tradeRes) { // to use tradeRes.tradeExecuted
+                        if (tradeRes) {
                             let balanceData = await balanceRequest.batchApiBalanceRequest();
                             tradeRes.balancePost = balanceData;
                             fs.appendFile('./log/execution-' + tmstmp_currentSysDate + '.json', JSON.stringify(tradeRes) + '\n', (err) => {
