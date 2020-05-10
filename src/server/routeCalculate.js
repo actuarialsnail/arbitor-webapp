@@ -83,7 +83,7 @@ const autoRebal = false;
 const strictTmstmpInd = false;
 const strictTmstmpLimit = 1e5; // 10s
 const showProfitOnly = true;
-const minMonitoringLevel = 0.8;
+const minMonitoringLevel = 0.99;
 
 const calculateNetValue = (priceData) => {
 
@@ -118,7 +118,7 @@ const calculateNetValue = (priceData) => {
 
             priceArr.push(price); tradeFeeArr.push(tradeFee); tradeSideArr.push(tradeSide); tradeKeyArr.push(tradeKey); timestampArr.push(timestamp);
             // depositFeeArr.push(depositFee); withdrawalFeeArr.push(withdrawalFee); 
-            
+
             // if (autoRebal) {
             //     // deposit and withdrawaml fees (add and mult) are zero if pre/proceeding exhcanges are the same respecively
             // }
@@ -127,8 +127,8 @@ const calculateNetValue = (priceData) => {
             netValue = netValue * price * (1 - tradeFee);
         }  // for each hop
         // if (hasPrice) {
-            // console.log(`${route} has price`);
-            // console.log(netValue);
+        // console.log(`${route} has price`);
+        // console.log(netValue);
         // }
         priceArr.push(netValue);
         timestampArr.push(tmStmpSystem);
@@ -145,7 +145,7 @@ const calculateNetValue = (priceData) => {
             const startSize = Math.min(mktSizeArr.slice(-1)[0], accSizeArr.slice(-1)[0]);
             const startCurrency = refMultMap[route[0].split('-')[0]];
             const refMult = startCurrency == 'reference' ? 1 : priceData[startCurrency] != undefined ? priceData[startCurrency].price : -1;
-            const refValue = netValue * startSize * refMult;
+            const refValue = (netValue - 1) / 100 * startSize * refMult;
             // arbitrageObjs.push({ route, price: priceArr, mktSize: mktSizeArr, accSize: accSizeArr, timestamp: timestampArr, tradeFee: tradeFeeArr, depositFee: depositFeeArr, withdrawalFee: withdrawalFeeArr, tradeSide: tradeSideArr, tradeKey: tradeKeyArr, refMult, refValue });
             arbitrageObjs.push({ route, price: priceArr, mktSize: mktSizeArr, accSize: accSizeArr, timestamp: timestampArr, tradeFee: tradeFeeArr, tradeSide: tradeSideArr, tradeKey: tradeKeyArr, refMult, refValue });
         }
@@ -163,7 +163,8 @@ const calculateSize = (route, priceData, type) => {
     for (let hop in route) {
         let route_seg = route[hop];
         let size = priceData[route_seg][sizeType];
-        let price = priceData[route_seg].price;
+        let buysell = priceData[route_seg].tradeSize;
+        let price = (buysell == 'sell') ? priceData[route_seg].price : 1 / priceData[route_seg].price;
         let tradeFee = priceData[route_seg].tradeFee;
         sizeArr.push(size);
         if (hop == 0) {
