@@ -27,6 +27,7 @@ class priceDataStreamClass {
 
   coinfloorOrderbookRequest() {
     let coinfloorTimeout;
+    const tickerDepth = 10;
     const request_WatchOrders = {
       tag: 1,
       method: "WatchOrders",
@@ -127,8 +128,8 @@ class priceDataStreamClass {
         }
       })
       // console.log(formattedOrderbook);
-      formattedOrderbook.bids.sort((a, b) => { return b.price - a.price; });
-      formattedOrderbook.asks.sort((a, b) => { return a.price - b.price; });
+      formattedOrderbook.bids.sort((a, b) => { return b.price - a.price; }).splice(tickerDepth);
+      formattedOrderbook.asks.sort((a, b) => { return a.price - b.price; }).splice(tickerDepth);
       return formattedOrderbook;
     }
 

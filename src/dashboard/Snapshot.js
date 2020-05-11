@@ -36,7 +36,7 @@ export default function Snapshot() {
                                 {key}
                             </Typography>
                             <Typography>
-                                Return {return_pc.toFixed(2)}%
+                                Return {return_pc.toFixed(1)}%
                             </Typography>
                             <Typography>
                                 refValue: {arbObj.refValue}

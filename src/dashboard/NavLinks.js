@@ -43,7 +43,7 @@ export const mainListItems = (
     </ListItem>
     <ListItem button component={Link} to="/snapshot">
       <ListItemIcon>
-        <BuildIcon />
+        <RssFeedIcon />
       </ListItemIcon>
       <ListItemText primary="Snapshot" />
     </ListItem>
