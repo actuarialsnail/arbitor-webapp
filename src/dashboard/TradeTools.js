@@ -19,7 +19,6 @@ import Avatar from '@material-ui/core/Avatar';
 
 import Grid from '@material-ui/core/Grid';
 import Slider from '@material-ui/core/Slider';
-import { findByLabelText } from '@testing-library/react';
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -96,6 +95,17 @@ export default function TradeTools() {
         }
     }, [])
 
+    const handleTextChange = (e) => {
+        setText(e.target.value);
+    }
+    const handleBalanceRequest = () => {
+        setBLoaded(false);
+        requestBalanceData(text, (data) => {
+            //console.log(new Date(), data);
+            setBalanceData(data);
+            setBLoaded(true);
+        });
+    }
     const handleExchangeChange = (e) => {
         setExchangeSelected(e.target.value);
         setLoading(0);
@@ -158,9 +168,10 @@ export default function TradeTools() {
                     <Typography variant="h5" component="h2">
                         Dollar cost averaging
                     </Typography>
+                    <Typography variant="body1">Live Data</Typography>
                     <Grid container className={classes.textBox}>
                         <Grid item>
-                            <Typography variant="body1"> Pair selected: {pairSelected} </Typography>
+                            <Typography variant="body2"> Pair selected: {pairSelected} </Typography>
                         </Grid>
                         <Grid item><Avatar className={classes.small}>B</Avatar></Grid>
                         <Grid item>
@@ -199,7 +210,9 @@ export default function TradeTools() {
                             </Typography>
                         </Grid>
                     </Grid>
-
+                    <br/>
+                    <TextField onChange={handleTextChange} />
+                    <Button color="primary" onClick={handleBalanceRequest}> Request balance </Button>
                     <div>
                         <FormControl className={classes.formControl}>
                             <InputLabel id="pair-select-label">Pair</InputLabel>
