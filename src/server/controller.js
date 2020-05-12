@@ -16,6 +16,7 @@ const readline = require('readline');
 const io = require('socket.io')();
 
 // balance info (init + adhoc)
+const config = require('./config/config');
 const balanceRequest = require('./balanceRequest');
 
 // exchange info (init + adhoc)
@@ -56,7 +57,7 @@ if (cluster.isMaster) {
             if (clusterMap[worker.id] === 100 && !count++) {
                 // Message from master for worker 100 to do specific task with taskArg
                 const init = async () => {
-                    balanceData = await balanceRequest.batchApiBalanceRequest();
+                    balanceData = await balanceRequest.batchApiBalanceRequest(config.thisCredSet);
                     exchangeData = await exchangeInfo.batchExchangeInfoRequest();
                     let priceDataStreamArgs = { task: 'priceDataStream', body: { balanceData, exchangeData } };
                     worker.send(priceDataStreamArgs);
@@ -154,20 +155,9 @@ if (cluster.isMaster) {
     
         client.on('requestBalanceData', (key) => {
             console.log('client requested balance');
-            if (key === 'bs') {
-                balanceRequest.request((balance) => {
+                balanceRequest.request(key, (balance) => {
                     client.emit('balanceData', balance);
-                });
-            } else {
-                let dummy = {
-                    'coinfloor': { 'GBP': 10 },
-                    'coinbase': { 'GBP': 10 },
-                    'binance': { 'GBP': 10 },
-                    'kraken': { 'GBP': 10 }
-                }
-                client.emit('balanceData', dummy);
-            }
-    
+                });    
         })
     
         client.on('requestSnapshotData', (data) => {
@@ -294,7 +284,7 @@ if (cluster.isMaster) {
                             });
                         console.log(`processed opportunity id ${id}`);
                         if (tradeRes) {
-                            let balanceData = await balanceRequest.batchApiBalanceRequest();
+                            let balanceData = await balanceRequest.batchApiBalanceRequest(config.thisCredSet);
                             tradeRes.balancePost = balanceData;
                             fs.appendFile('./log/execution-' + tmstmp_currentSysDate + '.json', JSON.stringify(tradeRes) + '\n', (err) => {
                                 if (err) { console.log('Error occured when writing to execution log', { tmstmp_currentSys, err }); }

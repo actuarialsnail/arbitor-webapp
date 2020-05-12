@@ -50,26 +50,38 @@ const apiRequest = async (url, method, headers, body) => {
     }
 }
 
-const batchApiBalanceRequest = async () => {
+const batchApiBalanceRequest = async (credSet) => {
     let balanceResults = {};
+    let lookupKey = {}
+    if (config.credSet.hasOwnProperty(credSet)){
+        lookupKey = config.credSet[credSet];
+    } else {
+        const dummy = {
+            'coinfloor': { 'GBP': 10 },
+            'coinbase': { 'GBP': 10 },
+            'binance': { 'GBP': 10 },
+            'kraken': { 'GBP': 10 }
+        }
+        return dummy
+    }
 
     let coinfloor_url_btcgbp = 'https://webapi.coinfloor.co.uk/bist/XBT/GBP/balance/';
     let coinfloor_url_ethgbp = 'https://webapi.coinfloor.co.uk/bist/ETH/GBP/balance/';
-    let coinfloor_headers = { 'Authorization': 'Basic ' + Buffer.from(config.credential.coinfloor.userid + '/' + config.credential.coinfloor.apikey + ":" + config.credential.coinfloor.password).toString('base64') };
+    let coinfloor_headers = { 'Authorization': 'Basic ' + Buffer.from(config.credential[lookupKey.coinfloor].userid + '/' + config.credential[lookupKey.coinfloor].apikey + ":" + config.credential[lookupKey.coinfloor].password).toString('base64') };
 
-    const coinbase_url = config.credential.coinbase.apiURL + '/accounts';
+    const coinbase_url = config.credential[lookupKey.coinbase].apiURL + '/accounts';
     let coinbase_timestamp = Date.now() / 1000;
     const coinbase_headers = {
-        'CB-ACCESS-KEY': config.credential.coinbase.apikey,
-        'CB-ACCESS-SIGN': coinbaseSignature(coinbase_timestamp, 'GET', '/accounts', "", config.credential.coinbase.base64secret),
+        'CB-ACCESS-KEY': config.credential[lookupKey.coinbase].apikey,
+        'CB-ACCESS-SIGN': coinbaseSignature(coinbase_timestamp, 'GET', '/accounts', "", config.credential[lookupKey.coinbase].base64secret),
         'CB-ACCESS-TIMESTAMP': coinbase_timestamp,
-        'CB-ACCESS-PASSPHRASE': config.credential.coinbase.passphrase
+        'CB-ACCESS-PASSPHRASE': config.credential[lookupKey.coinbase].passphrase
     }
 
     let binance_burl = 'https://api.binance.com';
     let binance_endpoint = '/api/v3/account';
     let binance_dataQueryString = 'recvWindow=20000&timestamp=' + Date.now();
-    let binance_headers = { 'X-MBX-APIKEY': config.credential.binance.apiKey };
+    let binance_headers = { 'X-MBX-APIKEY': config.credential[lookupKey.binance].apiKey };
 
     let kraken_url = 'https://api.kraken.com/0/private/Balance';
     let nonce = new Date() * 1000;
@@ -78,10 +90,10 @@ const batchApiBalanceRequest = async () => {
     };
     let kraken_body = JSON.stringify(kraken_postData);
 
-    let signature = krakenSignature('/0/private/Balance', kraken_body, config.credential.kraken.private_key, nonce);
+    let signature = krakenSignature('/0/private/Balance', kraken_body, config.credential[lookupKey.kraken].private_key, nonce);
     let kraken_headers = {
         'User-Agent': 'Kraken Javascript API Client',
-        'API-Key': config.credential.kraken.api,
+        'API-Key': config.credential[lookupKey.kraken].api,
         'API-Sign': signature,
         'Content-type': 'application/json'
     }
@@ -90,11 +102,11 @@ const batchApiBalanceRequest = async () => {
     let cex_headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
     let cex_timestamp = Math.floor(Date.now() / 1000);
 
-    let message = cex_timestamp.toString() + config.credential.cex.userid + config.credential.cex.apiKey;
-    let cex_signature = crypto.createHmac('sha256', Buffer.from(config.credential.cex.secretKey)).update(message).digest('hex');
+    let message = cex_timestamp.toString() + config.credential[lookupKey.cex].userid + config.credential[lookupKey.cex].apiKey;
+    let cex_signature = crypto.createHmac('sha256', Buffer.from(config.credential[lookupKey.cex].secretKey)).update(message).digest('hex');
 
     let cex_args = {
-        key: config.credential.cex.apiKey,
+        key: config.credential[lookupKey.cex].apiKey,
         signature: cex_signature.toUpperCase(),
         nonce: cex_timestamp.toString(),
     }
@@ -124,7 +136,7 @@ const batchApiBalanceRequest = async () => {
             key: 'coinbase'
         },
         {
-            url: binance_burl + binance_endpoint + '?' + binance_dataQueryString + '&signature=' + binanceSignature(binance_dataQueryString, config.credential.binance),
+            url: binance_burl + binance_endpoint + '?' + binance_dataQueryString + '&signature=' + binanceSignature(binance_dataQueryString, config.credential[lookupKey.binance]),
             method: 'GET',
             headers: binance_headers,
             body: null,
@@ -221,8 +233,8 @@ const batchApiBalanceRequest = async () => {
 
 //module.exports = batchApiBalanceRequest();
 
-const request = async (callback) => {
-    let balance = await batchApiBalanceRequest();
+const request = async (credSet, callback) => {
+    let balance = await batchApiBalanceRequest(credSet);
     callback(balance);
 }
 
@@ -231,7 +243,7 @@ module.exports = { request, batchApiBalanceRequest };
 const prototype_mode = process.argv[2] || false;
 
 if (prototype_mode == "true") {
-    request((balance) => {
+    request('bsArb', (balance) => {
         const fs = require('fs');
         let tmstmp_currentSys = new Date();
         let tmstmp_currentSysDate = tmstmp_currentSys.toJSON().slice(0, 10);
