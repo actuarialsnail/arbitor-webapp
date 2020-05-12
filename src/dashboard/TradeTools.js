@@ -1,6 +1,7 @@
 import React from 'react';
 import { requestStreamData, cancelStreamData } from '../api';
 import { requestBalanceData, cancelBalanceListener } from '../api';
+import { sendOrderParams, cancelOrdersParamsListener } from '../api';
 import Typography from '@material-ui/core/Typography';
 import { makeStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
@@ -72,6 +73,7 @@ export default function TradeTools() {
     const [quoteBP, setQuoteBP] = React.useState('');
     const [loading, setLoading] = React.useState(0);
     const [quoteSummary, setSummary] = React.useState({ cost: '' });
+    const [tradeRes, setTradeRes] = React.useState('');
 
     const classes = useStyles();
     React.useEffect(() => {
@@ -92,46 +94,51 @@ export default function TradeTools() {
         return () => {
             cancelStreamData();
             cancelBalanceListener();
+            cancelOrdersParamsListener();
         }
     }, [])
 
     const handleTextChange = (e) => {
         setText(e.target.value);
+        setSummary({ cost: '' });
     }
     const handleBalanceRequest = () => {
         setBLoaded(false);
         requestBalanceData(text, (data) => {
-            //console.log(new Date(), data);
+            // console.log(new Date(), data);
+            cancelBalanceListener();
             setBalanceData(data);
             setBLoaded(true);
         });
     }
     const handleExchangeChange = (e) => {
         setExchangeSelected(e.target.value);
-        setLoading(0);
+        requireReset();
     }
     const handlePairChange = (e) => {
+        if (exchangeSelected) setExchangeSelected('');
+        requireReset();
         setPairSelected(e.target.value);
-        setLoading(0);
     }
     const handleBuysellChange = (e) => {
         setBuysell(e.target.value);
-        setLoading(0);
+        requireReset();
     }
     const handleBinChange = (e) => {
         setBin(e.target.value);
-        setLoading(0);
+        setSummary({ cost: '' });
     }
     const handleBaseSizeChange = (e) => {
         setBaseSize(e.target.value);
-        setLoading(0);
+        setSummary({ cost: '' });
     }
     const handleLoadingChange = (e, nextValue) => {
-        setLoading(nextValue);
         // console.log(streamData[pairSelected][exchangeSelected]);
         const refPrice = buysell === 'buy' ? streamData[pairSelected][exchangeSelected].asks[0].price : streamData[pairSelected][exchangeSelected].bids[0].price;
         const boundaryPrice = Math.floor(buysell === 'buy' ? refPrice * (1 - nextValue / 100) : refPrice * (1 + nextValue / 100));
         setQuoteBP(boundaryPrice);
+        setSummary({ cost: '' });
+        setLoading(nextValue);
     }
     const handleClearbtnClick = () => {
         setPairList(Object.keys(streamData));
@@ -143,22 +150,33 @@ export default function TradeTools() {
         setQuoteBP('');
         setSummary({ cost: '' });
     }
+    const requireReset = () => {
+        setLoading(0);
+        setQuoteBP('');
+        setSummary({ cost: '' });
+    }
     const handleCalcbtnClick = () => {
         const refPrice = buysell === 'buy' ? streamData[pairSelected][exchangeSelected].asks[0].price : streamData[pairSelected][exchangeSelected].bids[0].price;
-        let interPrice = [];
+        let prices = [];
         let cost = 0;
         const stepSize = baseSize / bin;
         const deltaPrice = (quoteBP - refPrice) / bin;
         for (let index = 1; index <= bin; index++) {
             let stepPrice = Math.floor(refPrice + deltaPrice * (index));
-            interPrice.push(stepPrice);
+            prices.push(stepPrice);
             cost += stepSize * stepPrice;
         }
         cost = Math.round((cost + Number.EPSILON) * 100) / 100;
-        setSummary({ interPrice, cost, stepSize });
+        setSummary({ prices, cost, stepSize, text, buysell, pairSelected, exchangeSelected });
+        setTradeRes('');
     }
     const handleSubmitbtnClick = () => {
-
+        setTradeRes('');
+        sendOrderParams(quoteSummary, (res) => {
+            console.log(res);
+            setTradeRes(res);
+            cancelOrdersParamsListener();
+        });
     }
 
     return (
@@ -210,7 +228,7 @@ export default function TradeTools() {
                             </Typography>
                         </Grid>
                     </Grid>
-                    <br/>
+                    <br />
                     <TextField onChange={handleTextChange} />
                     <Button color="primary" onClick={handleBalanceRequest}> Request balance </Button>
                     <div>
@@ -268,17 +286,24 @@ export default function TradeTools() {
                             <Typography variant="body1">Loading {loading}%</Typography>
                         </Grid>
                         <Grid item>
-                            <Slider max={50} className={classes.slider} value={loading} onChange={handleLoadingChange} aria-labelledby="continuous-slider" disabled={pairSelected && exchangeSelected ? false : true} />
+                            <Slider min={0} step={1} max={50} className={classes.slider} value={loading} onChange={handleLoadingChange} aria-labelledby="continuous-slider" disabled={pairSelected && exchangeSelected ? false : true} />
                         </Grid>
                     </Grid>
                     <Typography variant="body1">Quote Boundary Price {quoteBP}</Typography>
                     <Typography variant="body1">Total Quote Price {quoteSummary.cost}</Typography>
-                    <pre>{quoteSummary.cost ? JSON.stringify(quoteSummary, null, 4) : ''}</pre>
+                    <Grid container>
+                        <Grid item>
+                            <pre>{quoteSummary.cost ? JSON.stringify(quoteSummary, null, 4) : ''}</pre>
+                        </Grid>
+                        <Grid item>
+                            <pre>{quoteSummary.cost && tradeRes ? JSON.stringify(tradeRes, null, 4) : ''}</pre>
+                        </Grid>
+                    </Grid>
                 </CardContent>
                 <CardActions>
                     <Button disabled={pairSelected && exchangeSelected ? false : true} color="primary" onClick={handleCalcbtnClick}>Preview</Button>
                     <Button color="secondary" onClick={handleClearbtnClick}>Clear</Button>
-                    <Button onClick={handleSubmitbtnClick}>Submit</Button>
+                    <Button disabled={quoteSummary.cost ? false : true} onClick={handleSubmitbtnClick} color="primary">Submit</Button>
                 </CardActions>
             </Card>
         </div>)

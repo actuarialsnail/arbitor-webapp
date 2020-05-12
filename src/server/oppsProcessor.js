@@ -34,7 +34,7 @@ const digest = async (sortedArbitrageObjs, balanceData, exchangeData, testMode, 
             let tradeRes;
             if (verifyOutput.status) {
                 console.log(`Opportunity validation passed...${opportunity_id}`);
-                tradeRes = await tradeExecutor(verifyOutput, balanceData, testMode);
+                tradeRes = await tradeExecutor.execute(verifyOutput, balanceData, testMode);
                 eachOp(verifyOutput, tradeRes, opportunity_id);
                 endOp();
                 // console.log('Balance post', balanceData);

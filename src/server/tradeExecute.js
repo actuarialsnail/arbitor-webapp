@@ -181,7 +181,7 @@ const apiRequest = async (url, method, headers, body) => {
 
 const batchApiOrderExecuteRequest = async (promiseArr) => {
     let orderExecuteRes = [];
-    orderExecuteRes = await Promise.all(promiseArr.map(async (req, index, arr) => {
+    orderExecuteRes = await Promise.all(promiseArr.map(async (req) => {
         let apiRes = await apiRequest(req.url, req.method, req.headers, req.body);
         return { [req.key]: apiRes };
     }));
@@ -218,6 +218,52 @@ const krakenSignature = (path, request, secret, nonce) => {
 
 module.exports = { execute };
 
+const placeLimitOrders = async (requestObj, cb) => {
+    console.log(requestObj);
+    let promiseArr = [];
+    if (requestObj.text === '') {
+        cb('error: text not found');
+        return;
+    } 
+    let credSet = config.credSet[requestObj.text] || 'not found';
+    if (credSet === 'not found'){
+        cb('error: cred set not found');
+        return;
+    };
+    const coinbase_cred = credSet.coinbase;
+    if (requestObj.exchangeSelected === 'coinbase'){
+        for (limitPrice of requestObj.prices) {
+            const coinbase_timestamp = Date.now() / 1000;
+            let coinbase_body = {
+                size: requestObj.stepSize,
+                price: limitPrice,
+                type: 'limit',
+                side: requestObj.buysell,
+                product_id: requestObj.pairSelected
+            };
+            let orderParam = {
+                url: config.credential[coinbase_cred].apiURL + '/orders',
+                method: 'POST',
+                headers: {
+                    'CB-ACCESS-KEY': config.credential[coinbase_cred].apikey,
+                    'CB-ACCESS-SIGN': coinbaseSignature(coinbase_timestamp, 'POST', '/orders', JSON.stringify(coinbase_body), config.credential[coinbase_cred].base64secret),
+                    'CB-ACCESS-TIMESTAMP': coinbase_timestamp,
+                    'CB-ACCESS-PASSPHRASE': config.credential[coinbase_cred].passphrase,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(coinbase_body)
+            }
+            promiseArr.push(orderParam);
+        }
+        let res = await batchApiOrderExecuteRequest(promiseArr);
+        cb(res);
+    } else {
+        cb('error: exchange not supported');
+    }
+}
+
+module.exports = { placeLimitOrders }
+
 const prototype_mode = process.argv[2] || false;
 
 if (prototype_mode == "true") {
@@ -243,8 +289,8 @@ if (prototype_mode == "true") {
 
             readInterface.on('close', async () => {
                 console.log(`Validation records to run: ${validationLogs.length}`);
-                for (verifyOutput of validationLogs){
-                    if (verifyOutput.status){
+                for (verifyOutput of validationLogs) {
+                    if (verifyOutput.status) {
                         const tradeRes = await execute(verifyOutput, balanceData, true);
                         console.log(JSON.stringify(tradeRes.tradeRes));
                     }

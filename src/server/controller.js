@@ -18,6 +18,7 @@ const io = require('socket.io')();
 // balance info (init + adhoc)
 const config = require('./config/config');
 const balanceRequest = require('./balanceRequest');
+const tradeExecutor = require('./tradeExecute');
 
 // exchange info (init + adhoc)
 const exchangeInfo = require('./exchangeInfo');
@@ -83,7 +84,7 @@ if (cluster.isMaster) {
                     sortedArbitrageObjs = msg.res.sortedArbitrageObjs;
                     break;
                 case 'oppsProcessor':
-                    if (msg.res.balanceData ) {
+                    if (msg.res.balanceData) {
                         let priceDataStreamArgs = { task: 'priceDataStreamUpdateProps', body: { balanceData, exchangeData } };
                         cluster.workers[clusterMapReverse[workerMap.priceDataStream]].send(priceDataStreamArgs);
                     }
@@ -100,19 +101,19 @@ if (cluster.isMaster) {
     io.on('connection', (client) => {
         let timer, streamTimer, snapshotTimer;
         console.log(`client id: ${client.id} connected`);
-    
+
         client.on('subscribeToTimer', (interval) => {
             console.log('client is subscribing to timer with interval ', interval);
             timer = setInterval(() => {
                 client.emit('timer', new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''));
             }, interval);
         });
-    
+
         client.on('requestTradeLogs', (date) => {
             console.log('client is requesting data for:', date);
             let tradeLogs = [];
             let path = '../../../arbitorLog/tradeLog' + date + '.json';
-    
+
             try {
                 if (fs.existsSync(path)) {
                     //file exists
@@ -121,16 +122,16 @@ if (cluster.isMaster) {
                         //output: process.stdout,
                         console: false
                     });
-    
+
                     readInterface.on('line', (line) => {
                         tradeLogs.push(JSON.parse(line))
                     });
-    
+
                     readInterface.on('close', () => {
                         //console.log(tradeLogs);
                         client.emit('tradeLogs', { data: tradeLogs, error: false });
                     })
-    
+
                 } else {
                     console.log('no files found')
                     client.emit('tradeLogs', { data: {}, error: 'no files found' });
@@ -140,26 +141,26 @@ if (cluster.isMaster) {
                 client.emit('tradeLogs', { data: {}, error: err });
             }
         });
-    
+
         client.on('requestStreamData', (interval) => {
             console.log('client is subscribing to data stream with interval ', interval);
             streamTimer = setInterval(() => {
                 client.emit('streamData', streamData);
             }, interval);
         })
-    
+
         client.on('cancelStreamData', () => {
             console.log('client has unsubscribed to data stream');
             clearInterval(timer);
         })
-    
+
         client.on('requestBalanceData', (key) => {
             console.log('client requested balance');
-                balanceRequest.request(key, (balance) => {
-                    client.emit('balanceData', balance);
-                });    
+            balanceRequest.request(key, (balance) => {
+                client.emit('balanceData', balance);
+            });
         })
-    
+
         client.on('requestSnapshotData', (data) => {
             console.log('client requested snapshot data');
             const size = Math.max(data.size, 30);
@@ -167,12 +168,19 @@ if (cluster.isMaster) {
                 client.emit('snapshotData', sortedArbitrageObjs.slice(0, size));
             }, data.interval);
         })
-    
+
         client.on('cancelSnapshotData', () => {
             console.log('client has unsubscribed to snapshot data');
             clearInterval(snapshotTimer);
         })
-    
+
+        client.on('sendLimitOrders', (requestObj) => {
+            console.log('client submitted limit orders');
+            tradeExecutor.placeLimitOrders(requestObj, (res) => {
+                client.emit('placedLimitOrdersRes', res);
+            });
+        })
+
         client.on('disconnect', (reason) => {
             clearInterval(timer);
             clearInterval(streamTimer);
@@ -180,7 +188,7 @@ if (cluster.isMaster) {
             console.log(`client id: ${client.id} disconnected: ${reason}`)
         })
     });
-    
+
     const port = 8000;
     io.listen(port);
     console.log('listening on port ', port);
@@ -249,12 +257,12 @@ if (cluster.isMaster) {
                     filteredArbitrageObjs.push(arbObj);
                 }
             }
-           
+
             process.send({
                 type: 'routeCalculate',
                 res: { sortedArbitrageObjs, filteredArbitrageObjs },
             }) // respond to master
-            
+
             for (const arbObj of filteredArbitrageObjs) {
                 fs.appendFile('./log/opportunity-' + tmstmp_currentSysDate + '.json', JSON.stringify(arbObj) + '\n', (err) => {
                     if (err) {
@@ -270,7 +278,7 @@ if (cluster.isMaster) {
             const { filteredArbitrageObjs, balanceData, exchangeData, testMode } = msg.body;
             let tmstmp_currentSys = new Date();
             let tmstmp_currentSysDate = tmstmp_currentSys.toJSON().slice(0, 10);
-            
+
             if (filteredArbitrageObjs.length > 0) {
                 // execute process via callback to avoid clogging up controller
                 if (toRunOp && (cooldown <= 0)) {

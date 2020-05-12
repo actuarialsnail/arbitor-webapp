@@ -52,3 +52,14 @@ function cancelSnapshotData() {
   socket.emit('cancelSnapshotData');
 }
 export { cancelSnapshotData };
+
+function sendOrderParams(requestObj, cb) {
+  socket.on('placedLimitOrdersRes', res => cb(res));
+  socket.emit('sendLimitOrders', requestObj);
+}
+export { sendOrderParams }
+
+function cancelOrdersParamsListener() {
+  socket.off('placedLimitOrdersRes');
+}
+export { cancelOrdersParamsListener }

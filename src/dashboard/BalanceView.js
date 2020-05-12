@@ -60,6 +60,7 @@ export default function BalanceView() {
     React.useEffect(() => {
         requestBalanceData('', (data) => {
             //console.log(new Date(), data);
+            cancelBalanceListener();
             setBalanceData(ffBalanceData(data));
             setLoaded(true);
         });
