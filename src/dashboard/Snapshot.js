@@ -25,11 +25,12 @@ export default function Snapshot() {
         <React.Fragment>
             {loaded && snapshotData.map((arbObj) => {
                 const key = arbObj.route.join('-');
-                const mktSize = arbObj.mktSize.join('-');
-                const accSize = arbObj.accSize.join('-');
-                const return_pc = ((arbObj.price.slice(-1)[0]-1)*100);
-                const timestamp = new Date(arbObj.timestamp.slice(-1)[0]);
-                return(
+                const mktSize = arbObj.mktSize.join('*');
+                const accSize = arbObj.accSize.join('*');
+                const timestamp = arbObj.timestamp;
+                const return_pc = ((arbObj.price.slice(-1)[0] - 1) * 100);
+                const timestamp_webapp = new Date(arbObj.timestamp.slice(-1)[0]);
+                return (
                     <Card key={key}>
                         <CardContent>
                             <Typography>
@@ -51,7 +52,13 @@ export default function Snapshot() {
                                 accSize: {accSize}
                             </Typography>
                             <Typography>
-                                {timestamp.toJSON().slice(11,19)}
+                                timestamp: {timestamp.map(time => {
+                                let ts = new Date(time)
+                                return '*' + ts.toJSON().slice(11, 19) + '*'
+                            })}
+                            </Typography>
+                            <Typography>
+                                {timestamp_webapp.toJSON().slice(11, 19)}
                             </Typography>
                         </CardContent>
                     </Card>

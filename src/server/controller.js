@@ -193,6 +193,9 @@ if (cluster.isMaster) {
     io.listen(port);
     console.log('listening on port ', port);
 
+    // scheduled responsibility with master node
+    // mailer
+    // AoC update
 } else {
     console.log('Worker started with pid:', process.pid, 'and id:', process.env.workerId);
     let id = process.env.workerId;

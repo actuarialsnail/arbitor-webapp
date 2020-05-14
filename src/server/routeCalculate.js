@@ -80,7 +80,7 @@ symbolSets.forEach(set => {
 });
 
 const autoRebal = false;
-const strictTmstmpInd = false;
+const strictTmstmpInd = true;
 const strictTmstmpLimit = 1e5; // 10s
 const showProfitOnly = true;
 const minMonitoringLevel = 0.99;
