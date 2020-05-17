@@ -227,11 +227,11 @@ const batchApiBalanceRequest = async (credSet) => {
             console.log(apiRes);
         }
     }));
+
+    balanceResults.bisq = {};
     //console.log(balanceResults);
     return balanceResults;
 }
-
-//module.exports = batchApiBalanceRequest();
 
 const request = async (credSet, callback) => {
     let balance = await batchApiBalanceRequest(credSet);

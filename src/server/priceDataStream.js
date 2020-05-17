@@ -12,6 +12,38 @@ class priceDataStreamClass {
     this.exchangeData = {};
   }
 
+  apiRequest(url, method, headers, body, cb) {
+    try {
+      fetch(url, {
+        method: method,
+        headers: headers,
+        body: body
+      })
+        .then(response => {
+          if (response.status !== 200) {
+            console.log(new Date(), 'Error occured. Status Code: ' + response.status);
+            response.json().then(data => { console.log(new Date(), data) });
+            return;
+          }
+          return response.json()
+        })
+        .then(data => {
+          //console.log(data);
+          cb(data)
+        })
+        .catch(error => {
+          console.error(new Date(), error);
+        })
+      // console.log(response);
+      // const json = JSON.parse(response);
+      // //console.log(json)
+      // return json;
+    } catch (error) {
+      console.log('apiRequest error:', error, url);
+      return (error);
+    }
+  }
+
   updateProductProps(balanceData, exchangeData) {
     this.accSizeData = balanceData;
     this.exchangeData = exchangeData;
@@ -22,7 +54,10 @@ class priceDataStreamClass {
     this.coinbaseOrderbookRequest();
     this.binanceOrderbookRequest();
     this.krakenOrderbookRequest();
-    // this.cexOrderbookRequest();
+    this.cexOrderbookRequest();
+    setInterval(() => {
+      this.bisqOrderbookRequst();
+    }, 1000)
   }
 
   coinfloorOrderbookRequest() {
@@ -70,7 +105,7 @@ class priceDataStreamClass {
       }
 
       if (wsOrderbook) {
-        this.streamData['BTC-GBP'].coinfloor = update_orders(msg);
+        this.streamData['BTC-GBP'].coinfloor = { ...update_orders(msg), timestamp: Date.now() };
         // console.log('bid 0', this.streamData['BTC-GBP'].coinfloor.bids[0], 'ask 0', this.streamData['BTC-GBP'].coinfloor.asks[0]);
         // console.log('bid 1', this.streamData['BTC-GBP'].coinfloor.bids[1], 'ask 1', this.streamData['BTC-GBP'].coinfloor.asks[1]);
         // console.log('bid 2', this.streamData['BTC-GBP'].coinfloor.bids[2], 'ask 2', this.streamData['BTC-GBP'].coinfloor.asks[2]);
@@ -199,7 +234,7 @@ class priceDataStreamClass {
                   }
               } //for both 'a' and 'b' updates in one feed
             } //if feed updates
-          this.streamData[pair].kraken = processOrderbook(kraken_orderbook[pair]);
+          this.streamData[pair].kraken = { ...processOrderbook(kraken_orderbook[pair]), timestamp: Date.now() };
           // console.log(pair, 'orderbook:');
           // console.log('asks');
           // console.log(this.streamData[pair].kraken.asks.reverse());
@@ -239,12 +274,15 @@ class priceDataStreamClass {
     const processOrderbook = (orderbook) => {
       let processedOrderbook = {};
       Object.keys(orderbook).map(key => {
-        // remove size 0 orders
-        processedOrderbook[key] = orderbook[key].filter(order => order.size > 0)
         // sort asks and bids
-        if (key == 'asks')
+        if (key == 'asks') {
+          // remove size 0 orders
+          processedOrderbook[key] = orderbook[key].filter(order => order.size > 0);
           processedOrderbook[key].sort((a, b) => { return a.price - b.price; });
-        else {
+        }
+        else if (key == 'bids') {
+          // remove size 0 orders
+          processedOrderbook[key] = orderbook[key].filter(order => order.size > 0);
           processedOrderbook[key].sort((a, b) => { return b.price - a.price; });
         }
       })
@@ -339,6 +377,7 @@ class priceDataStreamClass {
         coinbase_orderbook[product_id]['asks'] = coinbaseOrderbookInit(data['asks']);
         this.streamData[product_id].coinbase['bids'] = coinbaseSortedOrderbookSummary(coinbase_orderbook[product_id]['bids'], 'bids', tickerDepth);
         this.streamData[product_id].coinbase['asks'] = coinbaseSortedOrderbookSummary(coinbase_orderbook[product_id]['asks'], 'asks', tickerDepth);
+        this.streamData[product_id].coinbase['timestamp'] = Date.now();
       }
       if (data['type'] == 'l2update') {
         let product_id = data['product_id'];
@@ -352,6 +391,7 @@ class priceDataStreamClass {
         // console.log(coinbase_orderbook['BTC-GBP'].bids.length, coinbase_orderbook['BTC-GBP'].asks.length);
         // console.log(this.streamData[product_id].coinbase.asks);
         // console.log(this.streamData[product_id].coinbase.bids);
+        this.streamData[product_id].coinbase['timestamp'] = Date.now();
         this.streamDataToPriceData(product_id, 'coinbase', this.streamData[product_id].coinbase);
       }
     });
@@ -399,7 +439,7 @@ class priceDataStreamClass {
       } else {
         this.streamData[symbol] = { 'binance': {} }
       }
-      this.streamData[symbol].binance = { bids: [{ price: Number(bestBid), size: Number(bestBidQnt) }], asks: [{ price: Number(bestAsk), size: Number(bestAskQnt) }] }
+      this.streamData[symbol].binance = { bids: [{ price: Number(bestBid), size: Number(bestBidQnt) }], asks: [{ price: Number(bestAsk), size: Number(bestAskQnt) }], timestamp: Date.now() }
       // console.log(this.streamData[symbol].binance);
       this.streamDataToPriceData(symbol, 'binance', this.streamData[symbol].binance);
     }
@@ -437,7 +477,7 @@ class priceDataStreamClass {
         } else {
           this.streamData[pair] = { 'cex': {} }
         }
-        this.streamData[pair].cex = { bids: formatOrderbook(data.data.buy), asks: formatOrderbook(data.data.sell) };
+        this.streamData[pair].cex = { bids: formatOrderbook(data.data.buy), asks: formatOrderbook(data.data.sell), timestamp: Date.now() };
         //console.log(this.streamData[pair].cex.asks);
         this.streamDataToPriceData(pair, 'cex', this.streamData[pair].cex);
       }
@@ -472,6 +512,42 @@ class priceDataStreamClass {
     }
   } //cexOrderbookRequest
 
+  bisqOrderbookRequst() {
+    const exchange = 'bisq';
+    const product_list = ['ETH-BTC', 'LTC-BTC', 'BTC-GBP', 'BTC-EUR'];
+    const bisqFormat = (product) => {
+      return product.replace('-', '_').toLowerCase();
+    }
+    const bisq_url = 'https://markets.bisq.network/api/offers?market=';
+    product_list.forEach(product => {
+      if (product in this.streamData) {
+        if (!('bisq' in this.streamData[product])) {
+          this.streamData[product].bisq = {}
+        }
+      } else {
+        this.streamData[product] = { 'bisq': {} }
+      }
+      const bisq_product = bisqFormat(product);
+      const endpoint = bisq_url + bisq_product;
+      this.apiRequest(endpoint, 'GET', null, null, data => {
+        // console.log(data[bisq_product]);
+        let bids = []; let asks = [];
+        for (const order of data[bisq_product].buys) {
+          bids.push({ price: Number(order.price), size: Number(order.amount) })
+        }
+        for (const order of data[bisq_product].sells) {
+          asks.push({ price: Number(order.price), size: Number(order.amount) })
+        }
+        this.streamData[product][exchange] = { asks, bids, timestamp: Date.now() }
+        this.streamDataToPriceData(product, exchange, this.streamData[product].bisq);
+      })
+    });
+
+    const sortOrderbook = (ordersArr) => {
+
+    }
+  }
+
   streamDataToPriceData(pair, exchange, pairData) {
     const [s1, s2] = pair.split('-');
     const bestBid = pairData.bids[0];
@@ -490,7 +566,7 @@ class priceDataStreamClass {
     // const depositFee2 = { add: 0, pc: 0 };
     // const withdrawalFee1 = { add: 0, pc: 0 };
     // const withdrawalFee2 = { add: 0, pc: 0 };
-    const timestamp = Date.now();
+    const timestamp = pairData.timestamp;
     // this.priceData[key1] = { price: price1, mktSize: mktSize1, accSize: accSize1, tradeFee: tradeFee1, depositFee: depositFee1, withdrawalFee: withdrawalFee1, timestamp: timestamp, tradeSide: "sell", tradeKey: key1 };
     // this.priceData[key2] = { price: price2, mktSize: mktSize2, accSize: accSize2, tradeFee: tradeFee2, depositFee: depositFee2, withdrawalFee: withdrawalFee2, timestamp: timestamp, tradeSide: "buy", tradeKey: key1 };
     this.priceData[key1] = { price: price1, mktSize: mktSize1, accSize: accSize1, tradeFee: tradeFee1, timestamp: timestamp, tradeSide: "sell", tradeKey: key1 };

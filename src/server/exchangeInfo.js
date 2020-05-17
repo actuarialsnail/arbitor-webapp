@@ -44,7 +44,8 @@ const batchExchangeInfoRequest = async () => {
         coinbase: { tradeFee: 0.005 },
         kraken: { tradeFee: 0.0026 },
         binance: { tradeFee: 0.001 },
-        cex: { tradeFee: 0.0025 }
+        cex: { tradeFee: 0.0025 },
+        bisq: { tredeFee: 0.01 }
     };
 
     // coinfloor
@@ -75,7 +76,7 @@ const batchExchangeInfoRequest = async () => {
             // 'ETH-GBP': 0,
         }
     }
-    exchangeInfo.coinfloor = {...coinfloor, ...exchangeInfo.coinfloor};
+    exchangeInfo.coinfloor = { ...coinfloor, ...exchangeInfo.coinfloor };
 
     // coinbase
     // exchangeInfo.coinbase = {};
@@ -96,7 +97,7 @@ const batchExchangeInfoRequest = async () => {
         // note that the price lmits (quote_increment) are for limit orders, market orders take size or funds as parameters
         // coinbase.stepAmt[key] = Math.max(element.quote_increment.indexOf('1') - 1, 0);
     });
-    exchangeInfo.coinbase = {...coinbase, ...exchangeInfo.coinbase};
+    exchangeInfo.coinbase = { ...coinbase, ...exchangeInfo.coinbase };
 
     // kraken
     // exchangeInfo.kraken = {}
@@ -154,7 +155,7 @@ const batchExchangeInfoRequest = async () => {
             kraken.stepAmt[pair] = krakenRes.result[krakenMap[pair]].pair_decimals;
         }
     })
-    exchangeInfo.kraken = {...kraken, ...exchangeInfo.kraken};
+    exchangeInfo.kraken = { ...kraken, ...exchangeInfo.kraken };
 
     // binance
     // exchangeInfo.binance = {};
@@ -187,7 +188,7 @@ const batchExchangeInfoRequest = async () => {
             }
         })
     });
-    exchangeInfo.binance = {...binance, ...exchangeInfo.binance};
+    exchangeInfo.binance = { ...binance, ...exchangeInfo.binance };
 
     // cex
     exchangeInfo.cex = {};
@@ -221,7 +222,7 @@ const batchExchangeInfoRequest = async () => {
         cex.maxAmt[symbol] = pair.minLotSizeS2 * 1000000;
         cex.stepAmt[symbol] = cex_precision[pair.symbol2];
     })
-    exchangeInfo.cex = {...cex, ...exchangeInfo.cex};
+    exchangeInfo.cex = { ...cex, ...exchangeInfo.cex };
 
     return exchangeInfo;
 }

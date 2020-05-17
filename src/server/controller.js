@@ -163,7 +163,7 @@ if (cluster.isMaster) {
 
         client.on('requestSnapshotData', (data) => {
             console.log('client requested snapshot data');
-            const size = Math.max(data.size, 30);
+            const size = Math.min(data.size, 30);
             snapshotTimer = setInterval(() => {
                 client.emit('snapshotData', sortedArbitrageObjs.slice(0, size));
             }, data.interval);
@@ -289,6 +289,7 @@ if (cluster.isMaster) {
                     console.log('processing sorted and filtered opportunities')
                     oppsProcessor.digest(filteredArbitrageObjs, balanceData, exchangeData, testMode, async (verifyOutput, tradeRes, id) => {
                         //eachOp
+                        cooldown = cdThreshold;
                         if (verifyOutput)
                             fs.appendFile('./log/validation-' + tmstmp_currentSysDate + '.json', JSON.stringify(verifyOutput) + '\n', (err) => {
                                 if (err) { console.log('Error occured when writing to validation log', { tmstmp_currentSys, err }); }
@@ -300,7 +301,6 @@ if (cluster.isMaster) {
                             fs.appendFile('./log/execution-' + tmstmp_currentSysDate + '.json', JSON.stringify(tradeRes) + '\n', (err) => {
                                 if (err) { console.log('Error occured when writing to execution log', { tmstmp_currentSys, err }); }
                             });
-                            cooldown = cdThreshold;
                             process.send({
                                 type: 'oppsProcessor',
                                 res: { balanceData },

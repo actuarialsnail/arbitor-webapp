@@ -45,6 +45,9 @@ const batchApiOrderbookRequest = async (promiseArr) => {
     await Promise.all(promiseArr.map(async (req, index, arr) => {
         // console.time(req.key)
         let apiRes = await apiRequest(req.url, req.method, req.headers, req.body);
+        if (req.key.split('-')[2] == 'kraken' && apiRes.error.length == 0){
+            apiRes.error = null;
+        }
         if (apiRes.error){
             console.log(req.key, 'response error occured');
             hasIssues = true;
