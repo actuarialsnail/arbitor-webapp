@@ -157,13 +157,13 @@ const calculateNetValue = (priceData) => {
 const calculateSize = (route, priceData, type) => {
     //console.log(`calculateSize: ${route}`);
     const sizeType = (type == "market") ? 'mktSize' : 'accSize';
-    let netSize = 1;
+    let netSize = 1; // init relative scalar 1 = 100%
     let accPriceFactor = 1; //should result in same value as netValue
     let sizeArr = [];
     for (let hop in route) {
         let route_seg = route[hop];
         let size = priceData[route_seg][sizeType];
-        let buysell = priceData[route_seg].tradeSize;
+        let buysell = priceData[route_seg].tradeSide;
         let price = (buysell == 'sell') ? priceData[route_seg].price : 1 / priceData[route_seg].price;
         let tradeFee = priceData[route_seg].tradeFee;
         sizeArr.push(size);
@@ -172,7 +172,7 @@ const calculateSize = (route, priceData, type) => {
         } else {
             netSize = Math.min(netSize, size) * price * (1 - tradeFee);
         }
-        accPriceFactor = price * (1 - tradeFee)
+        accPriceFactor = accPriceFactor * price * (1 - tradeFee);
     }
     netSize = netSize / accPriceFactor; //rebase size to starting value
     sizeArr.push(netSize);
