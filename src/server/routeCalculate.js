@@ -145,7 +145,7 @@ const calculateNetValue = (priceData) => {
             const startSize = Math.min(mktSizeArr.slice(-1)[0], accSizeArr.slice(-1)[0]);
             const startCurrency = refMultMap[route[0].split('-')[0]];
             const refMult = startCurrency == 'reference' ? 1 : priceData[startCurrency] != undefined ? priceData[startCurrency].price : -1;
-            const refValue = (netValue - 1) / 100 * startSize * refMult;
+            const refValue = (netValue - 1) * startSize * refMult;
             // arbitrageObjs.push({ route, price: priceArr, mktSize: mktSizeArr, accSize: accSizeArr, timestamp: timestampArr, tradeFee: tradeFeeArr, depositFee: depositFeeArr, withdrawalFee: withdrawalFeeArr, tradeSide: tradeSideArr, tradeKey: tradeKeyArr, refMult, refValue });
             arbitrageObjs.push({ route, price: priceArr, mktSize: mktSizeArr, accSize: accSizeArr, timestamp: timestampArr, tradeFee: tradeFeeArr, tradeSide: tradeSideArr, tradeKey: tradeKeyArr, refMult, refValue });
         }
