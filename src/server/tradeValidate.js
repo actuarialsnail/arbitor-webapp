@@ -10,17 +10,17 @@ const regVol = (price, size, pairKey, exchangeData) => {
     let dec = exchangeData[exchange].stepSize[pair];
     let order_quantity = Math.floor(size * 10 ** dec) / (10 ** dec)
     if (order_quantity < exchangeData[exchange].minSize[pair]) {
-        console.log('order quantity below minSize');
+        console.log(`${pairKey} order quantity ${order_quantity} below minSize ${exchangeData[exchange].minSize[pair]}`);
         order_quantity = 0;
     }
     if (order_quantity > exchangeData[exchange].maxSize[pair]) {
-        console.log('order quantity above maxSize');
+        console.log(`${pairKey} order quantity ${order_quantity} above maxSize ${exchangeData[exchange].maxSize[pair]}`);
         order_quantity = exchangeData[exchange].maxSize[pair];
     }
     if (exchangeData[exchange].minAmt != undefined) {
         let minAmt = exchangeData[exchange].minAmt[pair];
         if (order_quantity * price < minAmt) {
-            console.log('order quantity below minAmt');
+            console.log(`${pairKey} order quantity ${order_quantity} * ${price} below minAmt ${minAmt}`);
             order_quantity = 0;
         }
     }

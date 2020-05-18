@@ -216,8 +216,6 @@ const krakenSignature = (path, request, secret, nonce) => {
     return hmac_digest;
 };
 
-module.exports = { execute };
-
 const placeLimitOrders = async (requestObj, cb) => {
     console.log(requestObj);
     let promiseArr = [];
@@ -262,7 +260,7 @@ const placeLimitOrders = async (requestObj, cb) => {
     }
 }
 
-module.exports = { placeLimitOrders }
+module.exports = { execute, placeLimitOrders }
 
 const prototype_mode = process.argv[2] || false;
 

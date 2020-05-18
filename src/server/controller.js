@@ -308,8 +308,8 @@ if (cluster.isMaster) {
                         };
                     }, () => { toRunOp = true; }) //endOp
                 }
-                if (cooldown > 0) { console.log(`sorted arb objects ready but opps processor in ${cooldown}s cooldown`) }
-                if (!toRunOp) { console.log('sorted arb objects ready but opps processor still busy...') }
+                // if (cooldown > 0) { console.log(`sorted arb objects ready but opps processor in ${cooldown}s cooldown`) }
+                // if (!toRunOp) { console.log('sorted arb objects ready but opps processor still busy...') }
             }
             cooldown--;
         }
