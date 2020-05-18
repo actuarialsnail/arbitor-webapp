@@ -163,8 +163,7 @@ const calculateSize = (route, priceData, type) => {
     for (let hop in route) {
         let route_seg = route[hop];
         let size = priceData[route_seg][sizeType];
-        let buysell = priceData[route_seg].tradeSide;
-        let price = (buysell == 'sell') ? priceData[route_seg].price : 1 / priceData[route_seg].price;
+        let price = priceData[route_seg].price;
         let tradeFee = priceData[route_seg].tradeFee;
         sizeArr.push(size);
         if (hop == 0) {

@@ -7,7 +7,7 @@ const tradeExecutor = require('./tradeExecute');
 
 const tradeTrigger_pc = 1.005 // 1.005 = 0.5% and above
 const tradeTrigger_val = 0 // ref 0.0001 ~ £0.5 @ £5000/btc
-const batch_limit = 5 //max number of validations per cycle/batch
+const batch_limit = 15 //max number of validations per cycle/batch
 
 const digest = async (sortedArbitrageObjs, balanceData, exchangeData, testMode, eachOp, endOp) => {
     let index = 0;
