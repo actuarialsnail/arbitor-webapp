@@ -7,16 +7,16 @@ function subscribeToTimer(cb) {
 }
 export { subscribeToTimer };
 
-function requestTradeLogs(date, cb) {
-  socket.on('tradeLogs', res => cb(res.error, res.data));
-  socket.emit('requestTradeLogs', date);
+function requestLogs(date, type, cb) {
+  socket.on('logs', res => cb(res.error, res.data));
+  socket.emit('requestLogs', { date, type });
 }
-export { requestTradeLogs };
+export { requestLogs };
 
-function cancelTradeLogsListener() {
-  socket.off('tradeLogs');
+function cancelLogsListener() {
+  socket.off('logs');
 }
-export { cancelTradeLogsListener }
+export { cancelLogsListener }
 
 function requestStreamData(cb) {
   socket.on('streamData', data => cb(data));

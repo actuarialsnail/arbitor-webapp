@@ -109,36 +109,36 @@ if (cluster.isMaster) {
             }, interval);
         });
 
-        client.on('requestTradeLogs', (date) => {
-            console.log('client is requesting data for:', date);
-            let tradeLogs = [];
-            let path = '../../../arbitorLog/tradeLog' + date + '.json';
-
+        client.on('requestLogs', data => {
+            console.log(`client is requesting ${data.type} data for: ${data.date}`);
+            let logs = [];
+            // let path = '../../../arbitorLog/tradeLog' + date + '.json';
+            const path = './log/' + data.type + '-' + data.date + '.json';
             try {
                 if (fs.existsSync(path)) {
                     //file exists
                     const readInterface = readline.createInterface({
-                        input: fs.createReadStream('../../../arbitorLog/tradeLog' + date + '.json'),
+                        input: fs.createReadStream(path),
                         //output: process.stdout,
                         console: false
                     });
 
                     readInterface.on('line', (line) => {
-                        tradeLogs.push(JSON.parse(line))
+                        logs.push(JSON.parse(line))
                     });
 
                     readInterface.on('close', () => {
-                        //console.log(tradeLogs);
-                        client.emit('tradeLogs', { data: tradeLogs, error: false });
+                        //console.log(logs);
+                        client.emit('logs', { data: logs, error: false });
                     })
 
                 } else {
                     console.log('no files found')
-                    client.emit('tradeLogs', { data: {}, error: 'no files found' });
+                    client.emit('logs', { data: {}, error: 'no files found' });
                 }
             } catch (err) {
                 console.error(err)
-                client.emit('tradeLogs', { data: {}, error: err });
+                client.emit('logs', { data: {}, error: err });
             }
         });
 

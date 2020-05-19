@@ -17,7 +17,13 @@ export const mainListItems = (
       </ListItemIcon>
       <ListItemText primary="Summary" />
     </ListItem>
-    <ListItem button component={Link} to="/opports">
+    <ListItem button component={Link} to="/logvalidation">
+      <ListItemIcon>
+        <AssignmentIcon />
+      </ListItemIcon>
+      <ListItemText primary="Validation Logs" />
+    </ListItem>
+    <ListItem button component={Link} to="/logvalidation">
       <ListItemIcon>
         <AssignmentIcon />
       </ListItemIcon>
@@ -35,17 +41,17 @@ export const mainListItems = (
       </ListItemIcon>
       <ListItemText primary="Price Feeds" />
     </ListItem>
-    <ListItem button component={Link} to="/tradetools">
-      <ListItemIcon>
-        <BuildIcon />
-      </ListItemIcon>
-      <ListItemText primary="Trade Tools" />
-    </ListItem>
     <ListItem button component={Link} to="/snapshot">
       <ListItemIcon>
         <RssFeedIcon />
       </ListItemIcon>
       <ListItemText primary="Snapshot" />
+    </ListItem>
+    <ListItem button component={Link} to="/tradetools">
+      <ListItemIcon>
+        <BuildIcon />
+      </ListItemIcon>
+      <ListItemText primary="Trade Tools" />
     </ListItem>
   </div>
 );

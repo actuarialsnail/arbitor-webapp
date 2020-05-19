@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import Opports from './dashboard/Opports';
+import LogValidation from './dashboard/LogValidation';
 import PriceFeed from './dashboard/PriceFeed';
 import BalanceView from './dashboard/BalanceView';
 import TradeTools from './dashboard/TradeTools';
@@ -50,8 +50,8 @@ export default function App() {
                 <Route path="/summary">
                   <Summary />
                 </Route>
-                <Route path="/opports">
-                  <Opports />
+                <Route path="/logvalidation">
+                  <LogValidation />
                 </Route>
                 <Route path="/pricefeed">
                   <PriceFeed />
