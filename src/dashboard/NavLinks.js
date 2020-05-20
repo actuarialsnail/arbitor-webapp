@@ -23,7 +23,7 @@ export const mainListItems = (
       </ListItemIcon>
       <ListItemText primary="Validation Logs" />
     </ListItem>
-    <ListItem button component={Link} to="/logvalidation">
+    <ListItem button component={Link} to="/logtrade">
       <ListItemIcon>
         <AssignmentIcon />
       </ListItemIcon>

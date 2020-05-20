@@ -297,7 +297,7 @@ if (cluster.isMaster) {
                         console.log(`processed opportunity id ${id}`);
                         if (tradeRes) {
                             let balanceData = await balanceRequest.batchApiBalanceRequest(config.thisCredSet);
-                            tradeRes.balancePost = balanceData;
+                            tradeRes.balancePost = tradeExecutor.balanceObjFilter(balanceData, tradeRes.verificationLog.route);
                             fs.appendFile('./log/execution-' + tmstmp_currentSysDate + '.json', JSON.stringify(tradeRes) + '\n', (err) => {
                                 if (err) { console.log('Error occured when writing to execution log', { tmstmp_currentSys, err }); }
                             });

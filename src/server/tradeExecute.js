@@ -32,12 +32,11 @@ const krakenMap = {
 }
 
 const execute = async (tradeObj, balanceData, trade_sandbox) => {
-    const ts = new Date();
     let execute_output = {
-        'type': 'execution',
-        'timestamp': ts.toISOString(),
-        ...tradeObj,
-        'balancePrior': balanceObjFilter(balanceData, tradeObj.route)
+        type: 'execution',
+        timestamp: Date.now(),
+        verificationLog: {...tradeObj},
+        balancePrior: balanceObjFilter(balanceData, tradeObj.route)
     }
 
     //prepare the order array
@@ -222,14 +221,14 @@ const placeLimitOrders = async (requestObj, cb) => {
     if (requestObj.text === '') {
         cb('error: text not found');
         return;
-    } 
+    }
     let credSet = config.credSet[requestObj.text] || 'not found';
-    if (credSet === 'not found'){
+    if (credSet === 'not found') {
         cb('error: cred set not found');
         return;
     };
     const coinbase_cred = credSet.coinbase;
-    if (requestObj.exchangeSelected === 'coinbase'){
+    if (requestObj.exchangeSelected === 'coinbase') {
         for (limitPrice of requestObj.prices) {
             const coinbase_timestamp = Date.now() / 1000;
             let coinbase_body = {
@@ -260,7 +259,7 @@ const placeLimitOrders = async (requestObj, cb) => {
     }
 }
 
-module.exports = { execute, placeLimitOrders }
+module.exports = { balanceObjFilter, execute, placeLimitOrders }
 
 const prototype_mode = process.argv[2] || false;
 
