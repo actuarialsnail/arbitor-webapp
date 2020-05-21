@@ -47,11 +47,17 @@ export const mainListItems = (
       </ListItemIcon>
       <ListItemText primary="Snapshot" />
     </ListItem>
-    <ListItem button component={Link} to="/tradetools">
+    <ListItem button component={Link} to="/tooldca">
       <ListItemIcon>
         <BuildIcon />
       </ListItemIcon>
-      <ListItemText primary="Trade Tools" />
+      <ListItemText primary="DCA Tool" />
+    </ListItem>
+    <ListItem button component={Link} to="/toolrebalance">
+      <ListItemIcon>
+        <BuildIcon />
+      </ListItemIcon>
+      <ListItemText primary="Rebalance Tool" />
     </ListItem>
   </div>
 );

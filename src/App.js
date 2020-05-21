@@ -4,12 +4,13 @@ import LogValidation from './dashboard/LogValidation';
 import LogTrade from './dashboard/LogTrade';
 import PriceFeed from './dashboard/PriceFeed';
 import BalanceView from './dashboard/BalanceView';
-import TradeTools from './dashboard/TradeTools';
+import ToolDCA from './dashboard/ToolDCA';
+import ToolRebalance from './dashboard/ToolRebalance';
 import Snapshot from './dashboard/Snapshot';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Frame from './dashboard/Frame';
 import { makeStyles } from '@material-ui/core/styles';
-import {BrowserRouter, Switch, Route} from 'react-router-dom';
+import { BrowserRouter, Switch, Route } from 'react-router-dom';
 import Container from '@material-ui/core/Container';
 import Paper from '@material-ui/core/Paper';
 
@@ -40,43 +41,46 @@ export default function App() {
   return (
     <React.Fragment>
       <BrowserRouter>
-      <div className={classes.root}>
-        <CssBaseline />
-        <Frame />
-        <main className={classes.content}>
-          <div className={classes.appBarSpacer} />
-          <Container maxWidth="xl" className={classes.container}>
-            <Paper className={classes.paper}>
-              <Switch>
-                <Route path="/summary">
-                  <Summary />
-                </Route>
-                <Route path="/logvalidation">
-                  <LogValidation />
-                </Route>
-                <Route path="/logtrade">
-                  <LogTrade />
-                </Route>
-                <Route path="/pricefeed">
-                  <PriceFeed />
-                </Route>
-                <Route path="/balance">
-                  <BalanceView />
-                </Route>
-                <Route path="/tradetools">
-                  <TradeTools />
-                </Route>
-                <Route path="/snapshot">
-                  <Snapshot />
-                </Route>
-                <Route path="/">
-                  <Home />
-                </Route>
-              </Switch>
-            </Paper>
-          </Container>
-        </main>
-      </div>
+        <div className={classes.root}>
+          <CssBaseline />
+          <Frame />
+          <main className={classes.content}>
+            <div className={classes.appBarSpacer} />
+            <Container maxWidth="xl" className={classes.container}>
+              <Paper className={classes.paper}>
+                <Switch>
+                  <Route path="/summary">
+                    <Summary />
+                  </Route>
+                  <Route path="/logvalidation">
+                    <LogValidation />
+                  </Route>
+                  <Route path="/logtrade">
+                    <LogTrade />
+                  </Route>
+                  <Route path="/pricefeed">
+                    <PriceFeed />
+                  </Route>
+                  <Route path="/balance">
+                    <BalanceView />
+                  </Route>
+                  <Route path="/tooldca">
+                    <ToolDCA />
+                  </Route>
+                  <Route path="/toolrebalance">
+                    <ToolRebalance />
+                  </Route>
+                  <Route path="/snapshot">
+                    <Snapshot />
+                  </Route>
+                  <Route path="/">
+                    <Home />
+                  </Route>
+                </Switch>
+              </Paper>
+            </Container>
+          </main>
+        </div>
       </BrowserRouter>
     </React.Fragment>
   );
