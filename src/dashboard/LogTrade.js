@@ -130,51 +130,49 @@ export default function Opports() {
           title='Trades executed '
           columns={[
             {
-              title: 'Time', field: 'timestamp', render: rowData => {
-                return (
-                  rowData.timestamp.map((v, i) => { return (<div key={i}>{new Date(v).toTimeString().slice(0, 9)}</div>) })
-                )
-              }, sorting: false
+              title: 'Execution Time', field: 'timestamp', render: rowData => {
+                return (new Date(rowData.timestamp).toTimeString().slice(0, 9))
+              }, cellStyle: { verticalAlign: "top" }, sorting: true
             },
             {
               title: 'Pairs', field: 'route', render: rowData => {
                 return (
-                  rowData.route.map((v, i) => { return (<div key={i}>{v.split('-')[0] + '-' + v.split('-')[1]}</div>) })
+                  rowData.verificationLog.route.map((v, i) => { return (<div key={i}>{v.split('-')[0] + '-' + v.split('-')[1]}</div>) })
                 )
               }, cellStyle: { verticalAlign: "top" }, sorting: false
             },
             {
               title: 'Exchanges', field: 'route', render: rowData => {
                 return (
-                  rowData.route.map((v, i) => { return (<div key={i}>{v.split('-')[2]}</div>) })
+                  rowData.verificationLog.route.map((v, i) => { return (<div key={i}>{v.split('-')[2]}</div>) })
                 )
               }, cellStyle: { verticalAlign: "top" }, sorting: false
             },
             {
               title: 'Market', field: 'mktSize', render: rowData => {
                 return (
-                  formatCell(rowData.mktSize).map((v, i) => { return (<div key={i}>{v}</div>) })
+                  formatCell(rowData.verificationLog.mktSize).map((v, i) => { return (<div key={i}>{v}</div>) })
                 )
               }, sorting: false
             },
             {
               title: 'Account', field: 'accSize', render: rowData => {
                 return (
-                  formatCell(rowData.accSize).map((v, i) => { return (<div key={i}>{v}</div>) })
+                  formatCell(rowData.verificationLog.accSize).map((v, i) => { return (<div key={i}>{v}</div>) })
                 )
               }, cellStyle: { verticalAlign: "top" }, sorting: false
             },
             {
               title: 'Price', field: 'price', render: rowData => {
                 return (
-                  formatCell(rowData.price).map((v, i) => { return (<div key={i}>{v}</div>) })
+                  formatCell(rowData.verificationLog.price).map((v, i) => { return (<div key={i}>{v}</div>) })
                 )
               }, sorting: false
             },
             {
               title: 'Profit', field: 'refValue', render: rowData => {
                 return (
-                  Number.parseFloat(rowData.refValue).toFixed(6)
+                  Number.parseFloat(rowData.verificationLog.refValue).toFixed(6)
                 )
               }, defaultSort: 'desc'
             },

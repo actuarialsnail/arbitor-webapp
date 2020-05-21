@@ -145,7 +145,7 @@ export default function BalanceView() {
                         return (
                             <div key={currency}>
                                 <Typography variant="h6">{currency}</Typography>
-                                <BarChart width={400} height={200} data={balanceData.ffData} >
+                                <BarChart width={500} height={200} data={balanceData.ffData} >
                                     <XAxis dataKey="exchangeName" />
                                     <YAxis />
                                     <Tooltip />
