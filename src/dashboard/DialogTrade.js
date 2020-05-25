@@ -130,32 +130,36 @@ function TabPanel(props) {
       let list = [];
       let prior = {};
       let post = {};
+      let prior_sum = {};
+      let post_sum = {};
 
       Object.keys(log.balancePrior).forEach(exchange => {
         Object.keys(log.balancePrior[exchange]).forEach(currency => {
           if (typeof prior[currency] === "undefined") {
-            prior[currency] = {};
+            prior[currency] = {}; prior_sum[currency] = 0;
             list.push(currency)
           }
           prior[currency][exchange] = log.balancePrior[exchange][currency];
+          prior_sum[currency] += Number(prior[currency][exchange]);
         })
       })
 
       Object.keys(log.balancePost).forEach(exchange => {
         Object.keys(log.balancePost[exchange]).forEach(currency => {
           if (typeof post[currency] === "undefined") {
-            post[currency] = {};
+            post[currency] = {}; post_sum[currency] = 0;
             list.push(currency)
           }
           post[currency][exchange] = log.balancePost[exchange][currency];
+          post_sum[currency] += Number(post[currency][exchange]);
         })
       })
 
       list = Array.from(new Set(list));
       list.forEach((value) => {
         chartData.push([
-          { name: value + ' Prior', ...prior[value] },
-          { name: value + ' Post', ...post[value] }
+          { name: value + ' Prior', ...prior[value], sum: prior_sum[value] },
+          { name: value + ' Post', ...post[value], sum: post_sum[value] }
         ])
       })
 
@@ -175,15 +179,21 @@ function TabPanel(props) {
           <div><pre>{JSON.stringify(log.tradeRes, null, 2)}</pre></div>
           {chartData.map((item) => {
             return (
-              <BarChart width={250} height={200} data={item} key={item[0].name + ' ' + item[1].name}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <XAxis dataKey="name" />
-                <Tooltip />
-                <Bar dataKey="coinfloor" stackId="a" fill="#8884d8" />
-                <Bar dataKey="coinbase" stackId="a" fill="#82ca9d" />
-                <Bar dataKey="kraken" stackId="a" fill="#82ds9d" />
-                <Bar dataKey="binance" stackId="a" fill="#12ca9d" />
-              </BarChart>)
+              <React.Fragment key={item[0].name + ' ' + item[1].name}>
+                <Typography>{item[0].name}: {item[0].sum}</Typography>
+                <Typography>{item[1].name}: {item[1].sum}</Typography>
+                <BarChart width={250} height={200} data={item}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <XAxis dataKey="name" />
+                  <Tooltip />
+                  <Bar dataKey="coinfloor" stackId="a" fill="#053d5e" />
+                  <Bar dataKey="coinbase" stackId="a" fill="#070f15" />
+                  <Bar dataKey="binance" stackId="a" fill="#f0b90b" />
+                  <Bar dataKey="cex" stackId="a" fill="#00cccc" />
+                  <Bar dataKey="kraken" stackId="a" fill="#5741d9" />
+                </BarChart>
+              </React.Fragment>
+            )
           })}
         </div>
       );
