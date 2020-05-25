@@ -85,7 +85,7 @@ if (cluster.isMaster) {
                     break;
                 case 'oppsProcessor':
                     if (msg.res.balanceData) {
-                        let priceDataStreamArgs = { task: 'priceDataStreamUpdateProps', body: { balanceData, exchangeData } };
+                        let priceDataStreamArgs = { task: 'priceDataStreamUpdateProps', body: { balanceData: msg.res.balanceData, exchangeData } };
                         cluster.workers[clusterMapReverse[workerMap.priceDataStream]].send(priceDataStreamArgs);
                     }
                     break;
