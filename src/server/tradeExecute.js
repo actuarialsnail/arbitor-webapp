@@ -129,7 +129,7 @@ const execute = async (tradeObj, balanceData, trade_sandbox) => {
                     validate: trade_sandbox,
                 };
 
-                const signature = krakenSignature(kraken_path, requestData, config.credential.kraken.private_key, nonce);
+                const signature = krakenSignature(kraken_path, JSON.stringify(requestData), config.credential.kraken.private_key, nonce);
                 const kraken_headers = {
                     'User-Agent': 'Kraken Javascript API Client',
                     'API-Key': config.credential.kraken.api,
@@ -267,7 +267,7 @@ if (prototype_mode == "true") {
 
     const fs = require('fs');
     const readline = require('readline');
-    const balanceData = require('./log/balanceData2020-04-26.json');
+    const balanceData = require('./log/balanceData-test.json');
     let validationLogs = [];
     let path = './log/validation-test.json'
 
@@ -288,7 +288,7 @@ if (prototype_mode == "true") {
                 console.log(`Validation records to run: ${validationLogs.length}`);
                 for (verifyOutput of validationLogs) {
                     if (verifyOutput.status) {
-                        const tradeRes = await execute(verifyOutput, balanceData, true);
+                        const tradeRes = await execute(verifyOutput, balanceData, false);
                         console.log(JSON.stringify(tradeRes.tradeRes));
                     }
                 }

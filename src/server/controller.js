@@ -40,7 +40,7 @@ if (cluster.isMaster) {
     let count = 0; // Used to avoid infinite loop
 
     let balanceData, exchangeData, streamData;
-    const testMode = true;
+    const testMode = config.testMode;
     let sortedArbitrageObjs = [];
 
     for (let i = 0; i < numCPUs - 1; ++i) {
