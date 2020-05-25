@@ -1,4 +1,5 @@
 const WebSocket = require('ws');
+const fetch = require('node-fetch');
 
 const _config = {
   scheduled_timer: 3600000 // hourly: 3600000 = 1000 *60 *60, 2 minutes: 120000
@@ -415,22 +416,67 @@ class priceDataStreamClass {
     product_list.forEach(key => {
       binanceMap[key] = key.slice(0, 3) + '-' + key.slice(3, 6);
     })
-    const binance = require('binance-api-node').default;
-    const binanceClient = binance();
-    binanceClient.time().then(() => {
-      let clean = binanceClient.ws.ticker(product_list, exchangeTicker)
+    // const binance = require('binance-api-node').default;
+    // const binanceClient = binance();
+    // binanceClient.time().then(() => {
+    //   let clean = binanceClient.ws.ticker(product_list, exchangeTicker)
+    //   console.log('binance websocket connected at:', new Date());
+    //   binanceTimeout = setTimeout(() => {
+    //     console.log('scheduled reconnection of binance websocket connection');
+    //     clean();
+    //     console.log('binance websocket connection closed, reconnecting in 5s...');
+    //     clearTimeout(binanceTimeout);
+    //     setTimeout(() => { this.binanceOrderbookRequest(); }, 5000)
+    //   }, _config.scheduled_timer);
+    // });
+    const binance_ws = new WebSocket('wss://stream.binance.com:9443/ws');
+
+    binance_ws.on('open', () => {
       console.log('binance websocket connected at:', new Date());
       binanceTimeout = setTimeout(() => {
         console.log('scheduled reconnection of binance websocket connection');
-        clean();
-        console.log('binance websocket connection closed, reconnecting in 5s...');
-        clearTimeout(binanceTimeout);
-        setTimeout(() => { this.binanceOrderbookRequest(); }, 5000)
+        binance_ws.close();
       }, _config.scheduled_timer);
+      const req = {
+        "method": "SUBSCRIBE",
+        "params": product_list.map(product => product.toLowerCase() + '@bookTicker'),
+        "id": 1
+      }
+      binance_ws.send(JSON.stringify(req));
+
     });
 
+    binance_ws.on('error', error => {
+      console.log('binance error', error);
+    })
+
+    binance_ws.on('ping', (msg) => {
+      // console.log('ping received...', msg);
+      binance_ws.pong();
+    })
+
+    binance_ws.on('message', msg => {
+      // console.log(msg);
+      let res;
+      try {
+        res = JSON.parse(msg);
+      } catch (e) {
+        console.log('json error', e)
+      }
+
+      if (res.id === 1) { return; }
+
+      exchangeTicker(res);
+    })
+
+    binance_ws.on('close', () => {
+      console.log('binance websocket connection closed, reconnecting in 5s...');
+      clearTimeout(binanceTimeout);
+      setTimeout(() => { this.binanceOrderbookRequest() }, 5000);
+    })
+
     let exchangeTicker = ticker => {
-      let { symbol: bsymbol, bestBid: bestBid, bestBidQnt: bestBidQnt, bestAsk: bestAsk, bestAskQnt: bestAskQnt } = ticker;
+      let { s: bsymbol, b: bestBid, B: bestBidQnt, a: bestAsk, A: bestAskQnt } = ticker;
       let symbol = binanceMap[bsymbol];
       if (symbol in this.streamData) {
         if (!('binance' in this.streamData[symbol])) {

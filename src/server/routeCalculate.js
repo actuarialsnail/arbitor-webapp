@@ -81,7 +81,7 @@ symbolSets.forEach(set => {
 
 const autoRebal = false;
 const strictTmstmpInd = true;
-const strictTmstmpLimit = 1e5; // 10s
+const strictTmstmpLimit = 30 * 1e3; // n * seconds
 const showProfitOnly = true;
 const minMonitoringLevel = 0.99;
 
@@ -112,7 +112,8 @@ const calculateNetValue = (priceData) => {
             // const { price, tradeFee, depositFee, withdrawalFee, tradeSide, tradeKey, timestamp } = priceData[hop];
             const { price, tradeFee, tradeSide, tradeKey, timestamp } = priceData[hop];
 
-            if (strictTmstmpInd && tmStmpSystem - timestamp > strictTmstmpLimit) {
+            if (strictTmstmpInd && (tmStmpSystem - timestamp > strictTmstmpLimit)) {
+                // console.log(`${tmStmpSystem} ${hop} price stream/data time ${timestamp} is stale`);
                 hasPrice = false; break;
             }//stale priceData
 
