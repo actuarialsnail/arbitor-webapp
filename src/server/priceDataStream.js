@@ -58,7 +58,7 @@ class priceDataStreamClass {
     this.cexOrderbookRequest();
     setInterval(() => {
       this.bisqOrderbookRequst();
-    }, 1000)
+    }, 5000)
   }
 
   coinfloorOrderbookRequest() {
