@@ -130,6 +130,11 @@ export default function Opports() {
           title='Validated opportunities '
           columns={[
             {
+              title: 'Log time', field: 'timestamp', render: rowData => {
+                return (new Date(rowData.timestamp.slice(-1)[0]).toTimeString().slice(0, 9))
+              }, cellStyle: { verticalAlign: "top" }, sorting: true
+            },
+            {
               title: 'Time', field: 'timestamp', render: rowData => {
                 return (
                   rowData.timestamp.map((v, i) => { return (<div key={i}>{new Date(v).toTimeString().slice(0, 9)}</div>) })
