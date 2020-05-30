@@ -26,6 +26,8 @@ import SaveAlt from '@material-ui/icons/SaveAlt';
 import Search from '@material-ui/icons/Search';
 import ViewColumn from '@material-ui/icons/ViewColumn';
 import Grid from '@material-ui/core/Grid';
+import ErrorIcon from '@material-ui/icons/Error';
+import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 
 const tableIcons = {
     Add: forwardRef((props, ref) => <AddBox {...props} ref={ref} />),
@@ -67,6 +69,7 @@ export default function BalanceView() {
     const [loadedBal, setLoadedBal] = React.useState(false);
     const [totCost, setTotCost] = React.useState(0);
     const [tradeKeys, setTradeKeys] = React.useState([]);
+    const [balanceTotal, setBalanceTotal] = React.useState({});
     React.useEffect(() => {
         let once = true;
         requestStreamData((data) => {
@@ -81,7 +84,9 @@ export default function BalanceView() {
         requestBalanceData('', (data) => {
             //console.log(new Date(), data);
             cancelBalanceListener();
-            setBalanceData(ffBalanceData(data));
+            const formattedData = ffBalanceData(data);
+            setBalanceData(formattedData);
+            calcBalanceTotal(formattedData);
             setLoadedBal(true);
         });
         return () => {
@@ -124,7 +129,7 @@ export default function BalanceView() {
             }
             ffData.push(exchangeData);
         }
-        return { ffData, uniqueCurrencyList };
+        return { ffData, uniqueCurrencyList, initBal: ffData };
     }
 
     const handleBalanceRequest = () => {
@@ -133,7 +138,10 @@ export default function BalanceView() {
         requestBalanceData(text, (data) => {
             //console.log(new Date(), data);
             cancelBalanceListener();
-            setBalanceData(ffBalanceData(data));
+            const formattedData = ffBalanceData(data);
+            setBalanceData(formattedData);
+            calcBalanceTotal(formattedData);
+            setTotCost(0);
             setLoadedBal(true);
         });
     }
@@ -147,32 +155,54 @@ export default function BalanceView() {
         setTotCost(0);
         let current_balance = balanceData;
         let totCost = {};
+        current_balance.ffData = JSON.parse(JSON.stringify(balanceData.initBal));
+        let currencyList = current_balance.uniqueCurrencyList;
+
         for (const rebalOrder of rebalData) {
             const { exchange, pair, buysell, type, price, size } = rebalOrder;
             const [p1, p2] = pair.split('-');
             let i = 0;
             for (const row of current_balance.ffData) {
                 if (row.exchangeName === exchange) {
-                    const p1_prior = row[p1] || 0;
-                    const p2_prior = row[p2] || 0;
+                    const p1_prior = row[p1 + '_post'] || 0;
+                    const p2_prior = row[p2 + '_post'] || 0;
                     const p1_post = p1_prior + (buysell === 'buy' ? +1 : -1) * size;
-                    const p2_post = p2_prior + (buysell === 'buy' ? -1 : +1) * price * size;
                     const cost = price * size * exchangeTradeFee[exchange];
+                    const p2_post = p2_prior + (buysell === 'buy' ? -1 : +1) * price * size - cost;
                     const accCost = totCost[p2] || 0;
                     totCost[p2] = accCost + cost;
                     current_balance.ffData[i][p1 + '_post'] = p1_post;
                     current_balance.ffData[i][p2 + '_post'] = p2_post;
-                    let currencyList = current_balance.uniqueCurrencyList;
                     currencyList.push(...[p1, p2]);
-                    current_balance.uniqueCurrencyList = [...new Set(currencyList)];
                 }
                 i++;
             }
         }
-        setLoadedBal(true);
+        current_balance.uniqueCurrencyList = [...new Set(currencyList)];
         setBalanceData(current_balance);
+        calcBalanceTotal(current_balance);
         setTotCost(totCost);
+        setLoadedBal(true);
+        console.log(current_balance);
     }
+
+    const calcBalanceTotal = (current_balance) => {
+        let total_prior = {}; let total_post = {};
+        current_balance.uniqueCurrencyList.map(currency => {
+            total_prior[currency] = 0; total_post[currency] = 0;
+            current_balance.ffData.map(exchangeData => {
+                if (exchangeData[currency]) {
+                    total_prior[currency] += exchangeData[currency]
+
+                }
+                if (exchangeData[currency + '_post']) {
+                    total_post[currency] += exchangeData[currency + '_post'];
+                }
+            })
+        })
+        setBalanceTotal({ total_prior, total_post });
+    }
+
     const keysFormat = (keysArr) => {
         let keyObj = {};
         keysArr.forEach(key => {
@@ -272,18 +302,23 @@ export default function BalanceView() {
             <Grid container spacing={3}>
                 {
                     loadedBal && balanceData.uniqueCurrencyList.map(currency => {
-                        //console.log(balanceData.ffData);
+                        const deltaBal = balanceTotal.total_post[currency] - balanceTotal.total_prior[currency];
                         return (
-                            <Grid item xs={12} sm={12} md={6} lg={6} xl={3} key={currency}>
-                                <Typography variant="h6">{currency}</Typography>
-                                <BarChart width={450} height={200} data={balanceData.ffData} >
-                                    <XAxis dataKey="exchangeName" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Bar dataKey={currency} fill="#8884d8" />
-                                    <Bar dataKey={currency + '_post'} fill="#8bb158" />
-                                </BarChart>
-                            </Grid>
+                            <React.Fragment key={currency}>
+                                <Grid item xs={12} sm={12} md={6} lg={6} xl={3} >
+                                    <Typography variant="h6">{currency} {(deltaBal === 0 ? <CheckCircleIcon color='secondary' /> : <ErrorIcon color='primary' />)} </Typography>
+                                    <Typography variant="body2">Prior: {balanceTotal.total_prior[currency]}</Typography>
+                                    <Typography variant="body2">Post : {balanceTotal.total_post[currency]}</Typography>
+                                    <Typography variant="body2">Delta: {deltaBal}</Typography>
+                                    <BarChart width={450} height={200} data={balanceData.ffData} >
+                                        <XAxis dataKey="exchangeName" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Bar dataKey={currency} fill="#8884d8" />
+                                        <Bar dataKey={currency + '_post'} fill="#8bb158" />
+                                    </BarChart>
+                                </Grid>
+                            </React.Fragment>
                         )
                     })
                 }
