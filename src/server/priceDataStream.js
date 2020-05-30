@@ -245,6 +245,7 @@ class priceDataStreamClass {
         } //if feed is array
       } catch (error) {
         console.log('kraken ws message not processed:', JSON.stringify(msg), 'error', error);
+        console.log(JSON.stringify(kraken_orderbook));
         exit();
       }
     })
