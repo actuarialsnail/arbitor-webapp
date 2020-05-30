@@ -584,8 +584,10 @@ class priceDataStreamClass {
         for (const order of data[bisq_product].sells) {
           asks.push({ price: Number(order.price), size: Number(order.amount) })
         }
-        this.streamData[product][exchange] = { asks, bids, timestamp: Date.now() }
-        this.streamDataToPriceData(product, exchange, this.streamData[product].bisq);
+        if (bids.length > 0 && asks.length > 0) {
+          this.streamData[product][exchange] = { asks, bids, timestamp: Date.now() }
+          this.streamDataToPriceData(product, exchange, this.streamData[product].bisq);
+        }
       })
     });
 

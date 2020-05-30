@@ -1,198 +1,294 @@
 import React from 'react';
 import { requestStreamData, cancelStreamData } from '../api';
 import { requestBalanceData, cancelBalanceListener } from '../api';
-import { sendOrderParams, cancelOrdersParamsListener } from '../api';
 import Typography from '@material-ui/core/Typography';
+import Avatar from '@material-ui/core/Avatar';
 import { makeStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import CardActions from '@material-ui/core/CardActions';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import { BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
 import TextField from '@material-ui/core/TextField';
-import MenuItem from '@material-ui/core/MenuItem';
-import InputLabel from '@material-ui/core/InputLabel';
-import Select from '@material-ui/core/Select';
-import FormControl from '@material-ui/core/FormControl';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Radio from '@material-ui/core/Radio';
-import RadioGroup from '@material-ui/core/RadioGroup';
-import Avatar from '@material-ui/core/Avatar';
-
+import MaterialTable from 'material-table';
+import { forwardRef } from 'react';
+import AddBox from '@material-ui/icons/AddBox';
+import ArrowDownward from '@material-ui/icons/ArrowDownward';
+import Check from '@material-ui/icons/Check';
+import ChevronLeft from '@material-ui/icons/ChevronLeft';
+import ChevronRight from '@material-ui/icons/ChevronRight';
+import Clear from '@material-ui/icons/Clear';
+import DeleteOutline from '@material-ui/icons/DeleteOutline';
+import Edit from '@material-ui/icons/Edit';
+import FilterList from '@material-ui/icons/FilterList';
+import FirstPage from '@material-ui/icons/FirstPage';
+import LastPage from '@material-ui/icons/LastPage';
+import Remove from '@material-ui/icons/Remove';
+import SaveAlt from '@material-ui/icons/SaveAlt';
+import Search from '@material-ui/icons/Search';
+import ViewColumn from '@material-ui/icons/ViewColumn';
 import Grid from '@material-ui/core/Grid';
-import Slider from '@material-ui/core/Slider';
+
+const tableIcons = {
+    Add: forwardRef((props, ref) => <AddBox {...props} ref={ref} />),
+    Check: forwardRef((props, ref) => <Check {...props} ref={ref} />),
+    Clear: forwardRef((props, ref) => <Clear {...props} ref={ref} />),
+    Delete: forwardRef((props, ref) => <DeleteOutline {...props} ref={ref} />),
+    DetailPanel: forwardRef((props, ref) => <ChevronRight {...props} ref={ref} />),
+    Edit: forwardRef((props, ref) => <Edit {...props} ref={ref} />),
+    Export: forwardRef((props, ref) => <SaveAlt {...props} ref={ref} />),
+    Filter: forwardRef((props, ref) => <FilterList {...props} ref={ref} />),
+    FirstPage: forwardRef((props, ref) => <FirstPage {...props} ref={ref} />),
+    LastPage: forwardRef((props, ref) => <LastPage {...props} ref={ref} />),
+    NextPage: forwardRef((props, ref) => <ChevronRight {...props} ref={ref} />),
+    PreviousPage: forwardRef((props, ref) => <ChevronLeft {...props} ref={ref} />),
+    ResetSearch: forwardRef((props, ref) => <Clear {...props} ref={ref} />),
+    Search: forwardRef((props, ref) => <Search {...props} ref={ref} />),
+    SortArrow: forwardRef((props, ref) => <ArrowDownward {...props} ref={ref} />),
+    ThirdStateCheck: forwardRef((props, ref) => <Remove {...props} ref={ref} />),
+    ViewColumn: forwardRef((props, ref) => <ViewColumn {...props} ref={ref} />)
+};
 
 const useStyles = makeStyles(theme => ({
     root: {
-        display: 'flex',
+        '& > *': {
+            margin: theme.spacing(1),
+        },
     },
-    card: {
-        minWidth: 500,
-    },
-    formControl: {
-        margin: theme.spacing(1),
-        minWidth: 200,
-    },
-    textBox: {
-        justifyContent: 'left',
-        display: 'flex',
-        width: '500px',
-    },
-    textBlue: {
-        width: '80px',
-        verticalAlign: 'middle',
-        color: '#3F51B5',
-    },
-    textRed: {
-        width: '80px',
-        verticalAlign: 'middle',
-        color: '#B1102F',
-    },
-    small: {
-        width: theme.spacing(2.5),
-        height: theme.spacing(2.5),
-        fontSize: '0.75rem',
-        margin: '0px 5px'
-    },
-    slider: {
-        width: 200,
+    table: {
+        width: '950px',
     }
 }));
 
-export default function TradeTools() {
-    const [streamData, setStreamData] = React.useState('no streamData yet');
-    const [balanceData, setBalanceData] = React.useState('no balanceData yet');
-    const [priceLoaded, setPLoaded] = React.useState(false);
-    const [balanceLoaded, setBLoaded] = React.useState(false);
-    const [text, setText] = React.useState('');
-    const [pairList, setPairList] = React.useState({});
-    const [pairSelected, setPairSelected] = React.useState('');
-    const [exchangeSelected, setExchangeSelected] = React.useState('');
-    const [buysell, setBuysell] = React.useState('buy');
-    const [bin, setBin] = React.useState(10);
-    const [baseSize, setBaseSize] = React.useState(0.01);
-    const [quoteBP, setQuoteBP] = React.useState('');
-    const [loading, setLoading] = React.useState(0);
-    const [quoteSummary, setSummary] = React.useState({ cost: '' });
-    const [tradeRes, setTradeRes] = React.useState('');
-
+export default function BalanceView() {
     const classes = useStyles();
+    const [balanceData, setBalanceData] = React.useState('no balanceData yet');
+    const [streamData, setStreamData] = React.useState('no streamData yet');
+    const [text, setText] = React.useState('');
+    const [loadedStr, setLoadedStr] = React.useState(false);
+    const [loadedBal, setLoadedBal] = React.useState(false);
+    const [totCost, setTotCost] = React.useState(0);
+    const [tradeKeys, setTradeKeys] = React.useState([]);
     React.useEffect(() => {
-        let init = true;
+        let once = true;
         requestStreamData((data) => {
-            //console.log(new Date(), data);
+            // console.log(new Date(), data);
             setStreamData(data);
-            if (init) {
-                setPairList(Object.keys(data));
-                setPLoaded(true);
-                init = false;
+            if (once) {
+                setTradeKeys(Object.keys(data));
+                setLoadedStr(true);
+                once = false;
             }
         });
         requestBalanceData('', (data) => {
-            setBalanceData(data);
-            setBLoaded(true);
+            //console.log(new Date(), data);
+            cancelBalanceListener();
+            setBalanceData(ffBalanceData(data));
+            setLoadedBal(true);
         });
         return () => {
             cancelStreamData();
             cancelBalanceListener();
-            cancelOrdersParamsListener();
         }
     }, [])
+    const exchangeTradeFee = {
+        coinfloor: 0.003,
+        coinbase: 0.005,
+        kraken: 0.0026,
+        binance: 0.001,
+        cex: 0.003,
+        bisq: 0.01
+    }
+    const ffBalanceData = (bData) => {
+        //console.log(bData)
+        let fData = [];
+        let currencyList = [];
+        Object.keys(bData).forEach(exchange => {
+            let rowData = {};
+            Object.keys(bData[exchange]).forEach(currency => {
+                let balance = Number(bData[exchange][currency]);
+                if (balance > 0) {
+                    rowData[currency] = balance;
+                    rowData[currency + '_post'] = balance;
+                    currencyList.push(currency);
+                }
+            })
+            rowData.exchangeName = exchange;
+            fData.push(rowData);
+        })
+        let uniqueCurrencyList = [...new Set(currencyList)];
+        let ffData = []
+        for (const exchangeData of fData) {
+            for (const currency of uniqueCurrencyList) {
+                if (!exchangeData.hasOwnProperty(currency)) {
+                    exchangeData[currency] = 0;
+                }
+            }
+            ffData.push(exchangeData);
+        }
+        return { ffData, uniqueCurrencyList };
+    }
+
+    const handleBalanceRequest = () => {
+        setLoadedBal(false);
+        setRebalData([]);
+        requestBalanceData(text, (data) => {
+            //console.log(new Date(), data);
+            cancelBalanceListener();
+            setBalanceData(ffBalanceData(data));
+            setLoadedBal(true);
+        });
+    }
 
     const handleTextChange = (e) => {
         setText(e.target.value);
-        setSummary({ cost: '' });
     }
-    const handleBalanceRequest = () => {
-        setBLoaded(false);
-        requestBalanceData(text, (data) => {
-            // console.log(new Date(), data);
-            cancelBalanceListener();
-            setBalanceData(data);
-            setBLoaded(true);
-        });
-    }
-    const handleExchangeChange = (e) => {
-        setExchangeSelected(e.target.value);
-        requireReset();
-    }
-    const handlePairChange = (e) => {
-        if (exchangeSelected) setExchangeSelected('');
-        requireReset();
-        setPairSelected(e.target.value);
-    }
-    const handleBuysellChange = (e) => {
-        setBuysell(e.target.value);
-        requireReset();
-    }
-    const handleBinChange = (e) => {
-        setBin(e.target.value);
-        setSummary({ cost: '' });
-    }
-    const handleBaseSizeChange = (e) => {
-        setBaseSize(e.target.value);
-        setSummary({ cost: '' });
-    }
-    const handleLoadingChange = (e, nextValue) => {
-        // console.log(streamData[pairSelected][exchangeSelected]);
-        const refPrice = buysell === 'buy' ? streamData[pairSelected][exchangeSelected].asks[0].price : streamData[pairSelected][exchangeSelected].bids[0].price;
-        const boundaryPrice = Math.floor(buysell === 'buy' ? refPrice * (1 - nextValue / 100) : refPrice * (1 + nextValue / 100));
-        setQuoteBP(boundaryPrice);
-        setSummary({ cost: '' });
-        setLoading(nextValue);
-    }
-    const handleClearbtnClick = () => {
-        setPairList(Object.keys(streamData));
-        setExchangeSelected('');
-        setPairSelected('');
-        setBin(10);
-        setBaseSize(0.01);
-        setLoading(0);
-        setQuoteBP('');
-        setSummary({ cost: '' });
-    }
-    const requireReset = () => {
-        setLoading(0);
-        setQuoteBP('');
-        setSummary({ cost: '' });
-    }
-    const handleCalcbtnClick = () => {
-        const refPrice = buysell === 'buy' ? streamData[pairSelected][exchangeSelected].asks[0].price : streamData[pairSelected][exchangeSelected].bids[0].price;
-        let prices = [];
-        let cost = 0;
-        const stepSize = baseSize / bin;
-        const deltaPrice = (quoteBP - refPrice) / bin;
-        for (let index = 1; index <= bin; index++) {
-            let stepPrice = Math.floor(refPrice + deltaPrice * (index));
-            prices.push(stepPrice);
-            cost += stepSize * stepPrice;
+
+    const postRebalanceUpdate = (rebalData) => {
+        setLoadedBal(false);
+        setTotCost(0);
+        let current_balance = balanceData;
+        let totCost = {};
+        for (const rebalOrder of rebalData) {
+            const { exchange, pair, buysell, type, price, size } = rebalOrder;
+            const [p1, p2] = pair.split('-');
+            let i = 0;
+            for (const row of current_balance.ffData) {
+                if (row.exchangeName === exchange) {
+                    const p1_prior = row[p1] || 0;
+                    const p2_prior = row[p2] || 0;
+                    const p1_post = p1_prior + (buysell === 'buy' ? +1 : -1) * size;
+                    const p2_post = p2_prior + (buysell === 'buy' ? -1 : +1) * price * size;
+                    const cost = price * size * exchangeTradeFee[exchange];
+                    const accCost = totCost[p2] || 0;
+                    totCost[p2] = accCost + cost;
+                    current_balance.ffData[i][p1 + '_post'] = p1_post;
+                    current_balance.ffData[i][p2 + '_post'] = p2_post;
+                    let currencyList = current_balance.uniqueCurrencyList;
+                    currencyList.push(...[p1, p2]);
+                    current_balance.uniqueCurrencyList = [...new Set(currencyList)];
+                }
+                i++;
+            }
         }
-        cost = Math.round((cost + Number.EPSILON) * 100) / 100;
-        setSummary({ prices, cost, stepSize, text, buysell, pairSelected, exchangeSelected });
-        setTradeRes('');
+        setLoadedBal(true);
+        setBalanceData(current_balance);
+        setTotCost(totCost);
     }
-    const handleSubmitbtnClick = () => {
-        setTradeRes('');
-        sendOrderParams(quoteSummary, (res) => {
-            console.log(res);
-            setTradeRes(res);
-            cancelOrdersParamsListener();
-        });
+    const keysFormat = (keysArr) => {
+        let keyObj = {};
+        keysArr.forEach(key => {
+            keyObj[key] = key
+        })
+        return keyObj;
     }
+
+    const dt_columns = [
+        {
+            title: 'Exchange', initialEditValue: 'coinbase',
+            field: 'exchange',
+            lookup: { coinfloor: 'coinfloor', coinbase: 'coinbase', kraken: 'kraken', binance: 'binance', cex: 'cex' }
+        },
+        { title: 'Pair', field: 'pair', initialEditValue: 'BTC-EUR', lookup: keysFormat(tradeKeys) },
+        { title: 'Side', field: 'buysell', initialEditValue: 'buy', lookup: { buy: 'buy', sell: 'sell' } },
+        { title: 'Type', field: 'type', initialEditValue: 'limit', lookup: { market: 'market', limit: 'limit' } },
+        { title: 'Order Price', field: 'price', type: 'numeric' },
+        { title: 'Size', field: 'size', type: 'numeric' },
+        {
+            title: 'Stream Price', field: 'streamprice', initialEditValue: ' ', render: rowData => {
+                return (
+                    <React.Fragment>
+                        <Typography variant="body2" >
+                            {/* {('bids' in streamData[pair][exchange]) ? streamData[pair][exchange].bids[0].price : console.log('Error', pair, exchange, streamData[pair][exchange])} */}
+                            Bid: {streamData[rowData.pair][rowData.exchange].bids[0].price}
+                        </Typography>
+                        <Typography variant="body2" >
+                            {/* {('asks' in streamData[pair][exchange]) ? streamData[pair][exchange].asks[0].price : console.log('Error', pair, exchange, streamData[pair][exchange])} */}
+                            Ask: {streamData[rowData.pair][rowData.exchange].asks[0].price}
+                        </Typography>
+                    </React.Fragment>
+                )
+            }
+        }
+    ]
+    const [rebalData, setRebalData] = React.useState([]);
 
     return (
         <div className={classes.root}>
-            <Card className={classes.card}>
-                <CardContent>
-                    <Typography variant="h5" component="h2">
-                        Exchange funds rebalance
-                    </Typography>
-                </CardContent>
-                <CardActions>
-                    <Button>Preview</Button>
-                    <Button>Clear</Button>
-                    <Button>Submit</Button>
-                </CardActions>
-            </Card>
-        </div>)
 
+            <TextField onChange={handleTextChange} />
+            <Button variant="outlined" color="primary" onClick={handleBalanceRequest}>
+                Request balance
+            </Button>
+            <Typography>
+                Total cost: {JSON.stringify(totCost)}
+            </Typography>
+            <div className={classes.table}>
+                <MaterialTable
+                    title="Rebalance Orders"
+                    icons={tableIcons}
+                    columns={dt_columns}
+                    data={rebalData}
+                    options={{
+                        search: false,
+                        padding: 'dense',
+                        paging: false,
+                        minBodyHeight: '300px',
+                        tableLayout: 'fixed',
+                        draggable: false,
+                    }}
+                    editable={{
+                        onRowAdd: newData =>
+                            new Promise((resolve, reject) => {
+                                setTimeout(() => {
+                                    setRebalData([...rebalData, newData]);
+                                    postRebalanceUpdate([...rebalData, newData]);
+                                    resolve();
+                                }, 100)
+                            }),
+                        onRowUpdate: (newData, oldData) =>
+                            new Promise((resolve, reject) => {
+                                setTimeout(() => {
+                                    const dataUpdate = [...rebalData];
+                                    const index = oldData.tableData.id;
+                                    dataUpdate[index] = newData;
+                                    setRebalData([...dataUpdate]);
+                                    postRebalanceUpdate([...dataUpdate]);
+                                    resolve();
+                                }, 100)
+                            }),
+                        onRowDelete: oldData =>
+                            new Promise((resolve, reject) => {
+                                setTimeout(() => {
+                                    const dataDelete = [...rebalData];
+                                    const index = oldData.tableData.id;
+                                    dataDelete.splice(index, 1);
+                                    setRebalData([...dataDelete]);
+                                    postRebalanceUpdate([...dataDelete]);
+                                    resolve()
+                                }, 100)
+                            }),
+                    }}
+                />
+            </div>
+            <Grid container spacing={3}>
+                {
+                    loadedBal && balanceData.uniqueCurrencyList.map(currency => {
+                        //console.log(balanceData.ffData);
+                        return (
+                            <Grid item xs={12} sm={12} md={6} lg={6} xl={3} key={currency}>
+                                <Typography variant="h6">{currency}</Typography>
+                                <BarChart width={450} height={200} data={balanceData.ffData} >
+                                    <XAxis dataKey="exchangeName" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey={currency} fill="#8884d8" />
+                                    <Bar dataKey={currency + '_post'} fill="#8bb158" />
+                                </BarChart>
+                            </Grid>
+                        )
+                    })
+                }
+                {!loadedBal && <CircularProgress size={34} />}
+            </Grid>
+        </div>
+    )
 }
