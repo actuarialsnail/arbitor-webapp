@@ -197,6 +197,31 @@ if (cluster.isMaster) {
     // scheduled responsibility with master node
     // mailer
     // AoC update
+    let email_sent = false;
+    const email_hour = 3;
+    const email_minute = 0;
+    let balanceSnapshot = false;
+    const balance_minute = 10; //hourly
+
+    let master_scheduler = setInterval(() => {
+        let tmstmp_currentSys = new Date();
+        let hour = tmstmp_currentSys.getHours();
+        let minute = tmstmp_currentSys.getMinutes();
+
+        if (minute == balance_minute) {
+            if (!balanceSnapshot) {
+                balanceSnapshot = true;
+                balanceRequest.request(config.thisCredSet, balanceData => {
+                    fs.appendFile('./log/balance.json', JSON.stringify({ timestamp: tmstmp_currentSys, type: 'timer', ...balanceData }) + '\n', (err) => {
+                        if (err) { console.log('Error occured when writing to balance log (timer)', { tmstmp_currentSys, err }); }
+                    });
+                });
+            }
+        } else {
+            balanceSnapshot = false;
+        }
+
+    }, 1000)
 } else {
     console.log('Worker started with pid:', process.pid, 'and id:', process.env.workerId);
     let id = process.env.workerId;
@@ -298,6 +323,9 @@ if (cluster.isMaster) {
                         console.log(`processed opportunity id ${id}`);
                         if (tradeRes) {
                             let balanceData = await balanceRequest.batchApiBalanceRequest(config.thisCredSet);
+                            fs.appendFile('./log/balance.json', JSON.stringify({ timestamp: tmstmp_currentSys, type: 'trade', ...balanceData }) + '\n', (err) => {
+                                if (err) { console.log('Error occured when writing to balance log (trade)', { tmstmp_currentSys, err }); }
+                            });
                             tradeRes.balancePost = tradeExecutor.balanceObjFilter(balanceData, tradeRes.verificationLog.route);
                             fs.appendFile('./log/execution-' + tmstmp_currentSysDate + '.json', JSON.stringify(tradeRes) + '\n', (err) => {
                                 if (err) { console.log('Error occured when writing to execution log', { tmstmp_currentSys, err }); }
