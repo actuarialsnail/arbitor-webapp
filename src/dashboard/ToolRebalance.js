@@ -1,8 +1,8 @@
 import React from 'react';
 import { requestStreamData, cancelStreamData } from '../api';
 import { requestBalanceData, cancelBalanceListener } from '../api';
+import { sendOrderParams, cancelOrdersParamsListener } from '../api';
 import Typography from '@material-ui/core/Typography';
-import Avatar from '@material-ui/core/Avatar';
 import { makeStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -150,6 +150,13 @@ export default function BalanceView() {
         setText(e.target.value);
     }
 
+    const handleSubmit = () => {
+        sendOrderParams(rebalData, (res) => {
+            console.log(res);
+            cancelOrdersParamsListener();
+        });
+    }
+
     const postRebalanceUpdate = (rebalData) => {
         setLoadedBal(false);
         setTotCost(0);
@@ -159,16 +166,16 @@ export default function BalanceView() {
         let currencyList = current_balance.uniqueCurrencyList;
 
         for (const rebalOrder of rebalData) {
-            const { exchange, pair, buysell, type, price, size } = rebalOrder;
+            const { exchange, pair, side, price, size } = rebalOrder;
             const [p1, p2] = pair.split('-');
             let i = 0;
             for (const row of current_balance.ffData) {
                 if (row.exchangeName === exchange) {
                     const p1_prior = row[p1 + '_post'] || 0;
                     const p2_prior = row[p2 + '_post'] || 0;
-                    const p1_post = p1_prior + (buysell === 'buy' ? +1 : -1) * size;
+                    const p1_post = p1_prior + (side === 'buy' ? +1 : -1) * size;
                     const cost = price * size * exchangeTradeFee[exchange];
-                    const p2_post = p2_prior + (buysell === 'buy' ? -1 : +1) * price * size - cost;
+                    const p2_post = p2_prior + (side === 'buy' ? -1 : +1) * price * size - cost;
                     const accCost = totCost[p2] || 0;
                     totCost[p2] = accCost + cost;
                     current_balance.ffData[i][p1 + '_post'] = p1_post;
@@ -183,17 +190,15 @@ export default function BalanceView() {
         calcBalanceTotal(current_balance);
         setTotCost(totCost);
         setLoadedBal(true);
-        console.log(current_balance);
     }
 
     const calcBalanceTotal = (current_balance) => {
         let total_prior = {}; let total_post = {};
-        current_balance.uniqueCurrencyList.map(currency => {
+        current_balance.uniqueCurrencyList.forEach(currency => {
             total_prior[currency] = 0; total_post[currency] = 0;
-            current_balance.ffData.map(exchangeData => {
+            current_balance.ffData.forEach(exchangeData => {
                 if (exchangeData[currency]) {
                     total_prior[currency] += exchangeData[currency]
-
                 }
                 if (exchangeData[currency + '_post']) {
                     total_post[currency] += exchangeData[currency + '_post'];
@@ -218,7 +223,7 @@ export default function BalanceView() {
             lookup: { coinfloor: 'coinfloor', coinbase: 'coinbase', kraken: 'kraken', binance: 'binance', cex: 'cex' }
         },
         { title: 'Pair', field: 'pair', initialEditValue: 'BTC-EUR', lookup: keysFormat(tradeKeys) },
-        { title: 'Side', field: 'buysell', initialEditValue: 'buy', lookup: { buy: 'buy', sell: 'sell' } },
+        { title: 'Side', field: 'side', initialEditValue: 'buy', lookup: { buy: 'buy', sell: 'sell' } },
         { title: 'Type', field: 'type', initialEditValue: 'limit', lookup: { market: 'market', limit: 'limit' } },
         { title: 'Order Price', field: 'price', type: 'numeric' },
         { title: 'Size', field: 'size', type: 'numeric' },
@@ -227,11 +232,9 @@ export default function BalanceView() {
                 return (
                     <React.Fragment>
                         <Typography variant="body2" >
-                            {/* {('bids' in streamData[pair][exchange]) ? streamData[pair][exchange].bids[0].price : console.log('Error', pair, exchange, streamData[pair][exchange])} */}
                             Bid: {streamData[rowData.pair][rowData.exchange].bids[0].price}
                         </Typography>
                         <Typography variant="body2" >
-                            {/* {('asks' in streamData[pair][exchange]) ? streamData[pair][exchange].asks[0].price : console.log('Error', pair, exchange, streamData[pair][exchange])} */}
                             Ask: {streamData[rowData.pair][rowData.exchange].asks[0].price}
                         </Typography>
                     </React.Fragment>
@@ -248,8 +251,11 @@ export default function BalanceView() {
             <Button variant="outlined" color="primary" onClick={handleBalanceRequest}>
                 Request balance
             </Button>
+            <Button variant="outlined" color="primary" onClick={handleSubmit}>
+                Submit orders
+            </Button>
             <Typography>
-                Total cost: {JSON.stringify(totCost)}
+                Total trade fee: {JSON.stringify(totCost)}
             </Typography>
             <div className={classes.table}>
                 <MaterialTable
@@ -269,6 +275,7 @@ export default function BalanceView() {
                         onRowAdd: newData =>
                             new Promise((resolve, reject) => {
                                 setTimeout(() => {
+                                    newData.text = text;
                                     setRebalData([...rebalData, newData]);
                                     postRebalanceUpdate([...rebalData, newData]);
                                     resolve();
@@ -279,6 +286,7 @@ export default function BalanceView() {
                                 setTimeout(() => {
                                     const dataUpdate = [...rebalData];
                                     const index = oldData.tableData.id;
+                                    newData.text = text;
                                     dataUpdate[index] = newData;
                                     setRebalData([...dataUpdate]);
                                     postRebalanceUpdate([...dataUpdate]);

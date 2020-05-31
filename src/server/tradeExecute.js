@@ -35,7 +35,7 @@ const execute = async (tradeObj, balanceData, trade_sandbox) => {
     let execute_output = {
         type: 'execution',
         timestamp: Date.now(),
-        verificationLog: {...tradeObj},
+        verificationLog: { ...tradeObj },
         balancePrior: balanceObjFilter(balanceData, tradeObj.route)
     }
 
@@ -68,7 +68,7 @@ const execute = async (tradeObj, balanceData, trade_sandbox) => {
 
                 const { URLSearchParams } = require('url');
                 const cf_params = new URLSearchParams();
-                cf_params.append('quantity', 1); // quantiy/total for market orders, price/amount for limit orders
+                cf_params.append('quantity', order.quantity_base); // quantiy/total for market orders, price/amount for limit orders
 
                 param.url = coinfloor_endpoint;
                 param.method = 'POST';
@@ -169,6 +169,7 @@ const apiRequest = async (url, method, headers, body) => {
             body: body
         });
         catch_res = response;
+        // console.log(response);
         const json = await response.json();
         return json;
     } catch (error) {
@@ -218,45 +219,115 @@ const krakenSignature = (path, request, secret, nonce) => {
 const placeLimitOrders = async (requestObj, cb) => {
     console.log(requestObj);
     let promiseArr = [];
-    if (requestObj.text === '') {
-        cb('error: text not found');
-        return;
-    }
-    let credSet = config.credSet[requestObj.text] || 'not found';
-    if (credSet === 'not found') {
-        cb('error: cred set not found');
-        return;
-    };
-    const coinbase_cred = credSet.coinbase;
-    if (requestObj.exchangeSelected === 'coinbase') {
-        for (limitPrice of requestObj.prices) {
-            const coinbase_timestamp = Date.now() / 1000;
-            let coinbase_body = {
-                size: requestObj.stepSize,
-                price: limitPrice,
-                type: 'limit',
-                side: requestObj.buysell,
-                product_id: requestObj.pairSelected
-            };
-            let orderParam = {
-                url: config.credential[coinbase_cred].apiURL + '/orders',
-                method: 'POST',
-                headers: {
-                    'CB-ACCESS-KEY': config.credential[coinbase_cred].apikey,
-                    'CB-ACCESS-SIGN': coinbaseSignature(coinbase_timestamp, 'POST', '/orders', JSON.stringify(coinbase_body), config.credential[coinbase_cred].base64secret),
-                    'CB-ACCESS-TIMESTAMP': coinbase_timestamp,
-                    'CB-ACCESS-PASSPHRASE': config.credential[coinbase_cred].passphrase,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(coinbase_body)
-            }
-            promiseArr.push(orderParam);
+    for (reqOrder of requestObj) {
+        if (reqOrder.text === '') {
+            cb('error: text not found');
+            continue;
         }
-        let res = await batchApiOrderExecuteRequest(promiseArr);
-        cb(res);
-    } else {
-        cb('error: exchange not supported');
+        let credSet = config.credSet[reqOrder.text] || 'not found';
+        if (credSet === 'not found') {
+            cb('error: cred set not found');
+            continue;
+        };
+        let [p1, p2] = reqOrder.pair.split('-');
+        switch (reqOrder.exchange) {
+            case 'coinfloor':
+                p1 = p1 == 'BTC' ? 'XBT' : p1;
+                let coinfloor_endpoint = 'https://webapi.coinfloor.co.uk/bist/';
+                coinfloor_endpoint += p1 + '/' + p2 + (reqOrder.side == 'buy' ? '/buy/' : '/sell/');
+                const coinfloor_cred = credSet.coinfloor;
+                const coinfloor_headers = {
+                    'Authorization': 'Basic ' + Buffer.from(config.credential[coinfloor_cred].userid + '/' + config.credential[coinfloor_cred].apikey + ":" + config.credential[coinfloor_cred].password).toString('base64')
+                };
+                const { URLSearchParams } = require('url');
+                const cf_params = new URLSearchParams(coinfloor_endpoint);
+                // // cf_params.append('quantity', 1);
+                cf_params.append('amount', reqOrder.size);
+                cf_params.append('price', reqOrder.price);
+
+                const coinfloor_orderParam = {
+                    url: coinfloor_endpoint,
+                    method: 'POST',
+                    headers: coinfloor_headers,
+                    body: cf_params,
+                }
+                promiseArr.push(coinfloor_orderParam);
+                break;
+            case 'coinbase':
+                const coinbase_cred = credSet.coinbase;
+                const coinbase_timestamp = Date.now() / 1000;
+                const coinbase_body = {
+                    size: reqOrder.size,
+                    price: reqOrder.price,
+                    type: reqOrder.type,
+                    side: reqOrder.side,
+                    product_id: reqOrder.pair,
+                };
+                const coinbase_orderParam = {
+                    url: config.credential[coinbase_cred].apiURL + '/orders',
+                    method: 'POST',
+                    headers: {
+                        'CB-ACCESS-KEY': config.credential[coinbase_cred].apikey,
+                        'CB-ACCESS-SIGN': coinbaseSignature(coinbase_timestamp, 'POST', '/orders', JSON.stringify(coinbase_body), config.credential[coinbase_cred].base64secret),
+                        'CB-ACCESS-TIMESTAMP': coinbase_timestamp,
+                        'CB-ACCESS-PASSPHRASE': config.credential[coinbase_cred].passphrase,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(coinbase_body)
+                }
+                promiseArr.push(coinbase_orderParam);
+                break;
+            case 'kraken':
+                const kraken_cred = credSet.kraken;
+                const kraken_burl = 'https://api.kraken.com';
+                const kraken_path = '/0/private/AddOrder';
+                const nonce = new Date() * 1000;
+                const requestData = {
+                    pair: krakenMap[reqOrder.pair],
+                    type: reqOrder.side,
+                    ordertype: reqOrder.type,
+                    volume: reqOrder.size,
+                    price: reqOrder.price,
+                    nonce: nonce
+                };
+                const signature = krakenSignature(kraken_path, JSON.stringify(requestData), config.credential[kraken_cred].private_key, nonce);
+                const kraken_orderParam = {
+                    url: kraken_burl + kraken_path,
+                    method: 'POST',
+                    headers: {
+                        'User-Agent': 'Kraken Javascript API Client',
+                        'API-Key': config.credential[kraken_cred].api,
+                        'API-Sign': signature,
+                        'Content-type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                }
+                promiseArr.push(kraken_orderParam);
+                break;
+            case 'binance':
+                const binance_cred = credSet.binance;
+                const binance_burl = 'https://api.binance.com';
+                const binance_endpoint = '/api/v3/order';
+                const binance_dataQueryString = 'recvWindow=20000&timestamp=' + Date.now() + '&symbol=' + p1 + p2 + '&side=' + reqOrder.side + '&type=' + reqOrder.type + '&quantity=' + reqOrder.size + '&price=' + reqOrder.price + '&timeInForce=GTC';
+                const binance_orderParam = {
+                    url: binance_burl + binance_endpoint + '?' + binance_dataQueryString + '&signature=' + binanceSignature(binance_dataQueryString, config.credential[binance_cred]),
+                    method: 'POST',
+                    headers: {
+                        'X-MBX-APIKEY': config.credential[binance_cred].apiKey
+                    },
+                    body: null
+                }
+                promiseArr.push(binance_orderParam);
+                break;
+            case 'cex':
+                break;
+            default:
+                console.log('unknown exchange requested');
+                break;
+        } //switch
     }
+    let res = await batchApiOrderExecuteRequest(promiseArr);
+    cb(res);
 }
 
 module.exports = { balanceObjFilter, execute, placeLimitOrders }

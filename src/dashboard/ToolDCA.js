@@ -167,12 +167,16 @@ export default function TradeTools() {
             cost += stepSize * stepPrice;
         }
         cost = Math.round((cost + Number.EPSILON) * 100) / 100;
-        setSummary({ prices, cost, stepSize, text, buysell, pairSelected, exchangeSelected });
+        setSummary({ prices, cost, stepSize, text, buysell, pair: pairSelected, exchange: exchangeSelected });
         setTradeRes('');
     }
     const handleSubmitbtnClick = () => {
         setTradeRes('');
-        sendOrderParams(quoteSummary, (res) => {
+        const { exchange, pair, stepSize, buysell } = quoteSummary;
+        let req = quoteSummary.prices.map(price => {
+            return { exchange, pair, size: stepSize, type: 'limit', side: buysell, price, text }
+        });
+        sendOrderParams(req, (res) => {
             console.log(res);
             setTradeRes(res);
             cancelOrdersParamsListener();
