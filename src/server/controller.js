@@ -211,8 +211,11 @@ if (cluster.isMaster) {
         if (minute == balance_minute) {
             if (!balanceSnapshot) {
                 balanceSnapshot = true;
-                balanceRequest.request(config.thisCredSet, balanceData => {
-                    fs.appendFile('./log/balance.json', JSON.stringify({ timestamp: tmstmp_currentSys, type: 'timer', ...balanceData }) + '\n', (err) => {
+                balanceRequest.request(config.thisCredSet, balance => {
+                    balanceData = balance;
+                    let priceDataStreamArgs = { task: 'priceDataStreamUpdateProps', body: { balanceData, exchangeData } };
+                    cluster.workers[clusterMapReverse[workerMap.priceDataStream]].send(priceDataStreamArgs);
+                    fs.appendFile('./log/balance.json', JSON.stringify({ timestamp: tmstmp_currentSys, type: 'timer', ...balance }) + '\n', (err) => {
                         if (err) { console.log('Error occured when writing to balance log (timer)', { tmstmp_currentSys, err }); }
                     });
                 });
