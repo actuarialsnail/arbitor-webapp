@@ -588,6 +588,8 @@ class priceDataStreamClass {
         if (bids.length > 0 && asks.length > 0) {
           this.streamData[product][exchange] = { asks, bids, timestamp: Date.now() }
           this.streamDataToPriceData(product, exchange, this.streamData[product].bisq);
+        } else {
+          this.streamData[product].bisq = { asks: [{ price: null, size: null }], bids: [{ price: null, size: null }], timestamp: Date.now() }; // no orderbook
         }
       })
     });
