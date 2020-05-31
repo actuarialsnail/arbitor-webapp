@@ -5,7 +5,7 @@ const tradeValidator = require('./tradeValidate');
 const tradeExecutor = require('./tradeExecute');
 
 
-const tradeTrigger_pc = 1.005 // 1.005 = 0.5% and above
+const tradeTrigger_pc = 1.01 // e.g. 1.005 = 0.5% and above, up to 0.3% to 0.8% trade fee (2 legs) and rebalancing cost
 const tradeTrigger_val = 1 / 7500 * 5 // ref 0.0001 ~ £0.5 @ £5000/btc
 const batch_limit = 15 //max number of validations per cycle/batch
 
