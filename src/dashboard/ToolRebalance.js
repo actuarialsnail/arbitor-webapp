@@ -70,6 +70,7 @@ export default function BalanceView() {
     const [totCost, setTotCost] = React.useState(0);
     const [tradeKeys, setTradeKeys] = React.useState([]);
     const [balanceTotal, setBalanceTotal] = React.useState({});
+    const [tradeRes, setTradeRes] = React.useState('no trade res yet');
     React.useEffect(() => {
         let once = true;
         requestStreamData((data) => {
@@ -87,6 +88,7 @@ export default function BalanceView() {
             const formattedData = ffBalanceData(data);
             setBalanceData(formattedData);
             calcBalanceTotal(formattedData);
+            setTradeRes('no trade res yet');
             setLoadedBal(true);
         });
         return () => {
@@ -153,6 +155,7 @@ export default function BalanceView() {
     const handleSubmit = () => {
         sendOrderParams(rebalData, (res) => {
             console.log(res);
+            setTradeRes(res);
             cancelOrdersParamsListener();
         });
     }
@@ -254,6 +257,9 @@ export default function BalanceView() {
             <Button variant="outlined" color="primary" onClick={handleSubmit}>
                 Submit orders
             </Button>
+            <div>
+                <pre>{JSON.stringify(tradeRes, null, 4)}</pre>
+            </div>
             <Typography>
                 Total trade fee: {JSON.stringify(totCost)}
             </Typography>

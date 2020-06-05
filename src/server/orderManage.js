@@ -10,7 +10,7 @@ const batchOpenOrdersRequest = async (credSet) => {
     if (config.credSet.hasOwnProperty(credSet)) {
         lookupKey = config.credSet[credSet];
     } else {
-        return null;
+        return {};
     }
 
     let coinfloor_url_btcgbp = 'https://webapi.coinfloor.co.uk/bist/XBT/GBP/open_orders/';
@@ -99,62 +99,9 @@ const batchOpenOrdersRequest = async (credSet) => {
     ]
     await Promise.all(promiseArr.map(async (req) => {
         let apiRes = await apiRequest(req.url, req.method, req.headers, req.body);
-        console.log(req.key, apiRes);
+        // console.log(req.key, apiRes);
         try {
-            if (req.key == 'coinfloor') {
-                openOrderResults['coinfloor'] = apiRes;
-            }
-            // if (req.key == 'coinbase') {
-            //     openOrderResults[req.key] = {};
-            //     apiRes.map(value => {
-            //         switch (value.currency) {
-            //             case 'EUR': openOrderResults[req.key].EUR = value.available; break;
-            //             case 'BTC': openOrderResults[req.key].BTC = value.available; break;
-            //             case 'GBP': openOrderResults[req.key].GBP = value.available; break;
-            //             case 'ETH': openOrderResults[req.key].ETH = value.available; break;
-            //             case 'LTC': openOrderResults[req.key].LTC = value.available; break;
-            //             default: openOrderResults[req.key][value.currency] = value.available; break;
-            //         }
-            //     })
-            // }
-            // if (req.key == 'binance') {
-            //     openOrderResults[req.key] = {};
-            //     apiRes.balances.map(value => {
-            //         switch (value.asset) {
-            //             case 'BTC': openOrderResults[req.key].BTC = value.free; break;
-            //             case 'ETH': openOrderResults[req.key].ETH = value.free; break;
-            //             case 'LTC': openOrderResults[req.key].LTC = value.free; break;
-            //             case 'XRP': openOrderResults[req.key].XRP = value.free; break;
-            //             case 'XMR': openOrderResults[req.key].XMR = value.free; break;
-            //             case 'BNB': openOrderResults[req.key].BNB = value.free; break;
-            //             default: openOrderResults[req.key][value.asset] = value.free; break;
-            //         }
-            //     })
-            // }
-            // if (req.key == 'kraken') {
-            //     openOrderResults[req.key] = {};
-            //     Object.keys(apiRes.result).map(asset => {
-            //         switch (asset) {
-            //             case 'XXBT': openOrderResults[req.key].BTC = apiRes.result[asset]; break;
-            //             case 'XETH': openOrderResults[req.key].ETH = apiRes.result[asset]; break;
-            //             case 'XLTC': openOrderResults[req.key].LTC = apiRes.result[asset]; break;
-            //             case 'ZGBP': openOrderResults[req.key].GBP = apiRes.result[asset]; break;
-            //             case 'ZEUR': openOrderResults[req.key].EUR = apiRes.result[asset]; break;
-            //             default: openOrderResults[req.key][asset] = apiRes.result[asset]; break;
-            //         }
-            //     })
-            // }
-            // if (req.key == 'cex') {
-            //     openOrderResults[req.key] = {};
-            //     Object.keys(apiRes).map(key => {
-            //         switch (key) {
-            //             case 'timestamp': break;
-            //             case 'username': break;
-            //             case 'error': console.log(apiRes[key]); break;
-            //             default: openOrderResults[req.key][key] = apiRes[key].available; break;
-            //         }
-            //     })
-            // }
+            openOrderResults[req.key] = apiRes;
         } catch (error) {
             console.log(error);
             console.log(apiRes);
@@ -162,7 +109,7 @@ const batchOpenOrdersRequest = async (credSet) => {
     }));
 
     openOrderResults.bisq = {};
-    //console.log(openOrderResults);
+    // console.log(openOrderResults);
     return openOrderResults;
 }
 
@@ -170,7 +117,8 @@ const cancelOrder = async (order, credSet, cb) => {
     let req;
     let lookupKey = config.credSet[credSet] || 'not found';
     if (lookupKey === 'not found') {
-        return [];
+        cb('not found');
+        return;
     }
     switch (order.exchange) {
         case 'coinfloor':

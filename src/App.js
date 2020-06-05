@@ -6,6 +6,7 @@ import PriceFeed from './dashboard/PriceFeed';
 import BalanceView from './dashboard/BalanceView';
 import ToolDCA from './dashboard/ToolDCA';
 import ToolRebalance from './dashboard/ToolRebalance';
+import OpenOrders from './dashboard/OpenOrders';
 import Snapshot from './dashboard/Snapshot';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Frame from './dashboard/Frame';
@@ -69,6 +70,9 @@ export default function App() {
                   </Route>
                   <Route path="/toolrebalance">
                     <ToolRebalance />
+                  </Route>
+                  <Route path="/openorders">
+                    <OpenOrders />
                   </Route>
                   <Route path="/snapshot">
                     <Snapshot />

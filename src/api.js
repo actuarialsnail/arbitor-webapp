@@ -63,3 +63,25 @@ function cancelOrdersParamsListener() {
   socket.off('placedLimitOrdersRes');
 }
 export { cancelOrdersParamsListener }
+
+function requestOpenOrdersData(key, cb) {
+  socket.on('openOrdersData', data => cb(data));
+  socket.emit('requestOpenOrdersData', key);
+}
+export { requestOpenOrdersData };
+
+function cancelOpenOrdersListener() {
+  socket.off('openOrdersData');
+}
+export { cancelOpenOrdersListener };
+
+function requestCancelOrder(requestObj, cb) {
+  socket.on('cancelOrder', res => cb(res));
+  socket.emit('requestCancelOrder', requestObj);
+}
+export { requestCancelOrder };
+
+function cancelCancelOrderListener() {
+  socket.off('cancelOrder');
+}
+export { cancelCancelOrderListener };

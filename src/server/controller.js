@@ -19,6 +19,7 @@ const io = require('socket.io')();
 const config = require('./config/config');
 const balanceRequest = require('./balanceRequest');
 const tradeExecutor = require('./tradeExecute');
+const orderManage = require('./orderManage');
 
 // exchange info (init + adhoc)
 const exchangeInfo = require('./exchangeInfo');
@@ -160,6 +161,20 @@ if (cluster.isMaster) {
             balanceRequest.request(key, (balance) => {
                 client.emit('balanceData', balance);
             });
+        })
+
+        client.on('requestOpenOrdersData', (key) => {
+            console.log('client requested open orders');
+            orderManage.request(key, (openOrders) => {
+                client.emit('openOrdersData', openOrders);
+            })
+        })
+
+        client.on('requestCancelOrder', requestObj => {
+            console.log('client requested cancel order');
+            orderManage.cancelOrder(requestObj.order, requestObj.text, res => {
+                client.emit('cancelOrder', res)
+            })
         })
 
         client.on('requestSnapshotData', (data) => {
