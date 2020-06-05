@@ -311,7 +311,8 @@ if (cluster.isMaster) {
             }) // respond to master
 
             for (const arbObj of filteredArbitrageObjs) {
-                fs.appendFile('./log/opportunity-' + tmstmp_currentSysDate + '.json', JSON.stringify(arbObj) + '\n', (err) => {
+                let filename = arbObj.route.join('-');
+                fs.appendFile('./log/opportunity/' + tmstmp_currentSysDate + '-' + filename + '.json', JSON.stringify(arbObj) + '\n', (err) => {
                     if (err) {
                         console.log('Error occured when writing to opportunity log', { tmstmp_currentSys, err });
                     }
