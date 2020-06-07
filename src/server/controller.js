@@ -214,16 +214,20 @@ if (cluster.isMaster) {
     // AoC update
     let email_sent = false;
     const email_hour = 3;
-    const email_minute = 0;
+    const email_minute = 30;
     let balanceSnapshot = false;
     const balance_minute = 10; //hourly
+    let hcDataProcessed = false;
+    const hcData_hour = 2
+    const hcData_minute = 30;
 
     let master_scheduler = setInterval(() => {
         let tmstmp_currentSys = new Date();
         let hour = tmstmp_currentSys.getHours();
         let minute = tmstmp_currentSys.getMinutes();
 
-        if (minute == balance_minute) {
+        // balance data polling
+        if (minute === balance_minute) {
             if (!balanceSnapshot) {
                 balanceSnapshot = true;
                 balanceRequest.request(config.thisCredSet, balance => {
@@ -238,6 +242,29 @@ if (cluster.isMaster) {
         } else {
             balanceSnapshot = false;
         }
+
+        // scheduled opportunity data processing
+        // trigger external process to generate summarised data for highcharts
+        if (hour === hcData_hour && minute === hcData_minute) {
+            if (!hcDataProcessed) {
+                hcDataProcessed = true;
+                const { exec } = require('child_process');
+                exec('node hcDataSummary.js standalone', (err, stdout, stderr) => {
+                    if (err) {
+                        //some err occurred
+                        console.error(err)
+                    } else {
+                        // the *entire* stdout and stderr (buffered)
+                        console.log(`stdout: ${stdout}`);
+                        console.log(`stderr: ${stderr}`);
+                    }
+                });
+            }
+        } else {
+            hcDataProcessed = false;
+        }
+
+        // scheduled email notification
 
     }, 1000)
 } else {

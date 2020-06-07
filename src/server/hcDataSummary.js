@@ -41,6 +41,7 @@ const processLineByLine = async (directoryPath, filename) => {
 }
 
 const summarise = async (directoryPath, date) => {
+    console.time('opp data process');
     const filesInScope = fs.readdirSync(directoryPath).filter(file => file.slice(0, 10) === date);
     let hcData = [];
     for (const filename of filesInScope) {
@@ -50,11 +51,11 @@ const summarise = async (directoryPath, date) => {
         sub_hcd.data = await readfile();
         hcData.push(sub_hcd);
     };
-    console.log(hcData.length);
+    console.log(hcData.length + ' routes processed');
     fs.writeFileSync('./hcd/' + date + '.json', JSON.stringify(hcData), (err) => {
         if (err) { console.log('Error occured when writing to hcd', { timestamp: Date.now(), err }); }
     })
-    return hcData;
+    console.timeEnd('opp data process');
 }
 
 module.exports = { summarise };
@@ -65,7 +66,6 @@ if (mode == "standalone") {
     if (process.pid) {
         console.log('Process started with pid: ' + process.pid);
     }
-
     const dirpath = './log/opportunity'
     const today = new Date()
     const yesterday = new Date(today)
