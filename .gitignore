@@ -6,6 +6,7 @@
 .pnp.js
 /src/server/config
 /src/server/log
+/src/server/hcd
 
 # testing
 /coverage
