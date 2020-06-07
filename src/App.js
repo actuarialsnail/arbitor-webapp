@@ -1,5 +1,6 @@
 import React from 'react';
 import './App.css';
+import LogOpportunity from './dashboard/LogOpportunity'
 import LogValidation from './dashboard/LogValidation';
 import LogTrade from './dashboard/LogTrade';
 import PriceFeed from './dashboard/PriceFeed';
@@ -52,6 +53,9 @@ export default function App() {
                 <Switch>
                   <Route path="/summary">
                     <Summary />
+                  </Route>
+                  <Route path="/logopportunity">
+                    <LogOpportunity />
                   </Route>
                   <Route path="/logvalidation">
                     <LogValidation />

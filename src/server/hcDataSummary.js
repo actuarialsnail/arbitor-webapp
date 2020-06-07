@@ -18,6 +18,7 @@ const processLineByLine = async (directoryPath, filename) => {
                 x: timestamp,
                 y: price,
                 z: 0,
+                // to include other stats like min, max price, min, max liquidity, average liquidity
             })
         }
         const lastCluster = sub_hcd_data.length - 1;

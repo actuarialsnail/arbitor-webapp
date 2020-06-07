@@ -114,8 +114,21 @@ if (cluster.isMaster) {
         client.on('requestLogs', data => {
             console.log(`client is requesting ${data.type} data for: ${data.date}`);
             let logs = [];
+            let path;
+            switch (data.type) {
+                case 'hcData':
+                    path = './hcd/' + data.date + '.json';
+                    break;
+
+                case 'validation': case 'execution':
+                    path = './log/' + data.type + '-' + data.date + '.json';
+                    break;
+
+                default:
+                    console.log('Type not recognised');
+                    break;
+            }
             // let path = '../../../arbitorLog/tradeLog' + date + '.json';
-            const path = './log/' + data.type + '-' + data.date + '.json';
             try {
                 if (fs.existsSync(path)) {
                     //file exists

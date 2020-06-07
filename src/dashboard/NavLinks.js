@@ -17,6 +17,12 @@ export const mainListItems = (
       </ListItemIcon>
       <ListItemText primary="Summary" />
     </ListItem>
+    <ListItem button component={Link} to="/logopportunity">
+      <ListItemIcon>
+        <AssignmentIcon />
+      </ListItemIcon>
+      <ListItemText primary="Opportunity Logs" />
+    </ListItem>
     <ListItem button component={Link} to="/logvalidation">
       <ListItemIcon>
         <AssignmentIcon />
