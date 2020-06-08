@@ -43,11 +43,11 @@ const processLineByLine = async (directoryPath, filename) => {
 
 const summarise = async (directoryPath, date) => {
     console.time('opp data process');
-    const filesInScope = fs.readdirSync(directoryPath).filter(file => file.slice(0, 10) === date);
+    const filesInScope = fs.readdirSync(directoryPath + '/' + date);
     let hcData = [];
     for (const filename of filesInScope) {
         let sub_hcd = { name: filename.replace(date + '-', '').replace('.json', '') };
-        const readfile = async () => { return await processLineByLine(directoryPath, filename); }
+        const readfile = async () => { return await processLineByLine(directoryPath + '/' + date, filename); }
         // sub_hcd.data = processLineByLine(directoryPath, filename);
         sub_hcd.data = await readfile();
         hcData.push(sub_hcd);

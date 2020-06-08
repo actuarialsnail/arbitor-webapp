@@ -356,7 +356,9 @@ if (cluster.isMaster) {
 
             for (const arbObj of filteredArbitrageObjs) {
                 let filename = arbObj.route.join('-');
-                fs.appendFile('./log/opportunity/' + tmstmp_currentSysDate + '-' + filename + '.json', JSON.stringify(arbObj) + '\n', (err) => {
+                const dir = './log/opportunity/' + tmstmp_currentSysDate;
+                if (!fs.existsSync(dir)) { fs.mkdirSync(dir); }
+                fs.appendFile(dir + '/' + filename + '.json', JSON.stringify(arbObj) + '\n', (err) => {
                     if (err) {
                         console.log('Error occured when writing to opportunity log', { tmstmp_currentSys, err });
                     }
