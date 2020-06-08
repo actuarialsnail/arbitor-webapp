@@ -124,6 +124,10 @@ if (cluster.isMaster) {
                     path = './log/' + data.type + '-' + data.date + '.json';
                     break;
 
+                case ('balance' + config.thisCredSet):
+                    path = './log/balance.json';
+                    break;
+
                 default:
                     console.log('Type not recognised');
                     break;

@@ -102,8 +102,9 @@ export default function Opportunites() {
     const processHcData = date => {
         // request data according to date
         // process the logs using callback
-        cancelLogsListener();
+
         requestLogs(date, 'hcData', (err, hcData) => {
+            cancelLogsListener();
             //logs = tradeLog_dummy; // to remove post testing
             if (err) {
                 console.log(err);

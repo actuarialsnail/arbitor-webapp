@@ -1,10 +1,10 @@
 import React from 'react';
-import { requestBalanceData, cancelBalanceListener } from '../api';
+import { requestBalanceData, cancelBalanceListener, requestLogs, cancelLogsListener } from '../api';
 import Typography from '@material-ui/core/Typography';
 import { makeStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import { BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
+import { BarChart, Bar, ComposedChart, Line, XAxis, YAxis, Tooltip } from 'recharts'
 import TextField from '@material-ui/core/TextField';
 import MaterialTable from 'material-table';
 import { forwardRef } from 'react';
@@ -23,6 +23,7 @@ import Remove from '@material-ui/icons/Remove';
 import SaveAlt from '@material-ui/icons/SaveAlt';
 import Search from '@material-ui/icons/Search';
 import ViewColumn from '@material-ui/icons/ViewColumn';
+import Grid from '@material-ui/core/Grid';
 
 const tableIcons = {
     Add: forwardRef((props, ref) => <AddBox {...props} ref={ref} />),
@@ -57,6 +58,9 @@ export default function BalanceView() {
     const [balanceData, setBalanceData] = React.useState('no balanceData yet');
     const [text, setText] = React.useState('');
     const [loaded, setLoaded] = React.useState(false);
+    const [balanceLog, setBalanceLog] = React.useState('');
+    const [logLoaded, setLogLoaded] = React.useState('');
+
     React.useEffect(() => {
         requestBalanceData('', (data) => {
             //console.log(new Date(), data);
@@ -113,6 +117,42 @@ export default function BalanceView() {
             setBalanceData(ffBalanceData(data));
             setLoaded(true);
         });
+        requestLogs('all history', 'balance' + text, (err, data) => {
+            cancelLogsListener();
+            // console.log(rechartFormat(data));
+            if (err) {
+                setBalanceLog([]);
+            } else {
+                setBalanceLog(rechartFormat(data));
+            }
+            setLogLoaded(true);
+        })
+    }
+
+    const rechartFormat = (balanceLog) => {
+        let rechartData = {};
+        for (const r of balanceLog) { // for each time period
+            const time = r.timestamp.slice(5, 14);
+            // const time = new Date(r.timestamp)
+            const type = r.type;
+            const currencyObj = {};
+            for (const exchange in r) {
+                if (exchange !== 'timestamp' && exchange !== 'type') { // for each exchange
+                    for (const currency in r[exchange]) { // for each currency
+                        if (!currencyObj[currency]) { currencyObj[currency] = { total: 0 } }
+                        currencyObj[currency][exchange] = Number(r[exchange][currency]);
+                        currencyObj[currency]['total'] += Number(r[exchange][currency]);
+                    }
+                }
+            }
+            // console.log(currencyObj);
+            // for each currency - push object time
+            for (const currency in currencyObj) {
+                if (!rechartData[currency]) { rechartData[currency] = [] };
+                rechartData[currency].push({ time, type, ...currencyObj[currency] });
+            }
+        }
+        return rechartData;
     }
 
     const handleTextChange = (e) => {
@@ -140,18 +180,46 @@ export default function BalanceView() {
             </div>
             <div>
                 {
-                    loaded && balanceData.uniqueCurrencyList.map(currency => {
-                        //console.log(balanceData.ffData);
+                    logLoaded && balanceData.uniqueCurrencyList.map(currency => {
                         return (
                             <div key={currency}>
-                                <Typography variant="h6">{currency}</Typography>
-                                <BarChart width={500} height={200} data={balanceData.ffData} >
-                                    <XAxis dataKey="exchangeName" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Bar dataKey={currency} fill="#8884d8" />
-                                </BarChart>
+
                             </div>
+                        )
+                    })
+                }
+            </div>
+            <div>
+                {
+                    loaded && logLoaded && balanceData.uniqueCurrencyList.map(currency => {
+                        // console.log(balanceData.ffData);
+                        return (
+                            <Grid container spacing={3} key={currency}>
+                                <Grid item xs={12} sm={12} md={12} lg={6}>
+                                    <Typography variant="h6">{currency} current</Typography>
+                                    <BarChart width={500} height={200} data={balanceData.ffData} >
+                                        <XAxis dataKey="exchangeName" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Bar dataKey={currency} fill="#8884d8" />
+                                    </BarChart>
+                                </Grid>
+                                <Grid item xs={12} sm={12} md={12} lg={6}>
+                                    <Typography variant="h6">{currency} historical</Typography>
+                                    <ComposedChart width={500} height={200} data={balanceLog[currency]}>
+                                        <XAxis dataKey="time" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Line type="monotone" dataKey="coinfloor" stroke="#053d5e" dot={false} />
+                                        <Line type="monotone" dataKey="coinbase" stroke="#070f15" dot={false} />
+                                        <Line type="monotone" dataKey="binance" stroke="#f0b90b" dot={false} />
+                                        <Line type="monotone" dataKey="cex" stroke="#00cccc" dot={false} />
+                                        <Line type="monotone" dataKey="kraken" stroke="#5741d9" dot={false} />
+                                        <Line type="monotone" dataKey="total" stroke="#ff7300" dot={false} />
+                                    </ComposedChart>
+                                </Grid>
+                            </Grid>
+
                         )
                     })
                 }
