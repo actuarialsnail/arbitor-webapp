@@ -123,7 +123,7 @@ export default function BalanceView() {
             if (err) {
                 setBalanceLog([]);
             } else {
-                setBalanceLog(rechartFormat(data));
+                setBalanceLog(rechartFormat(data.slice(-7 * 24)));
             }
             setLogLoaded(true);
         })
@@ -216,6 +216,7 @@ export default function BalanceView() {
                                         <Line type="monotone" dataKey="cex" stroke="#00cccc" dot={false} />
                                         <Line type="monotone" dataKey="kraken" stroke="#5741d9" dot={false} />
                                         <Line type="monotone" dataKey="total" stroke="#ff7300" dot={false} />
+                                        <Line dataKey="type" dot={false} />
                                     </ComposedChart>
                                 </Grid>
                             </Grid>
