@@ -143,7 +143,11 @@ if (cluster.isMaster) {
                     });
 
                     readInterface.on('line', (line) => {
-                        logs.push(JSON.parse(line))
+                        try {
+                            logs.push(JSON.parse(line));
+                        } catch (err) {
+                            console.error('error parsing line json', err);
+                        }
                     });
 
                     readInterface.on('close', () => {
