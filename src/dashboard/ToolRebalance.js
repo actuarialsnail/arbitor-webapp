@@ -153,6 +153,7 @@ export default function BalanceView() {
     }
 
     const handleSubmit = () => {
+        console.log(rebalData);
         sendOrderParams(rebalData, (res) => {
             console.log(res);
             setTradeRes(res);
@@ -228,10 +229,10 @@ export default function BalanceView() {
         { title: 'Pair', field: 'pair', initialEditValue: 'BTC-EUR', lookup: keysFormat(tradeKeys) },
         { title: 'Side', field: 'side', initialEditValue: 'buy', lookup: { buy: 'buy', sell: 'sell' } },
         { title: 'Type', field: 'type', initialEditValue: 'limit', lookup: { market: 'market', limit: 'limit' } },
-        { title: 'Order Price', field: 'price', type: 'numeric' },
+        { title: 'Limit Price', field: 'price', type: 'numeric' },
         { title: 'Size', field: 'size', type: 'numeric' },
         {
-            title: 'Stream Price', field: 'streamprice', initialEditValue: ' ', render: rowData => {
+            title: 'Stream Price', field: 'streamprice', initialEditValue: '', render: rowData => {
                 return (
                     <React.Fragment>
                         <Typography variant="body2" >
@@ -282,6 +283,10 @@ export default function BalanceView() {
                             new Promise((resolve, reject) => {
                                 setTimeout(() => {
                                     newData.text = text;
+                                    if (newData.type === 'market') {
+                                        const { pair, exchange } = newData;
+                                        newData.price = newData.side === 'buy' ? streamData[pair][exchange].asks[0].price : streamData[pair][exchange].bids[0].price;
+                                    }
                                     setRebalData([...rebalData, newData]);
                                     postRebalanceUpdate([...rebalData, newData]);
                                     resolve();
@@ -293,6 +298,10 @@ export default function BalanceView() {
                                     const dataUpdate = [...rebalData];
                                     const index = oldData.tableData.id;
                                     newData.text = text;
+                                    if (newData.type === 'market') {
+                                        const { pair, exchange } = newData;
+                                        newData.price = newData.side === 'buy' ? streamData[pair][exchange].asks[0].price : streamData[pair][exchange].bids[0].price;
+                                    }
                                     dataUpdate[index] = newData;
                                     setRebalData([...dataUpdate]);
                                     postRebalanceUpdate([...dataUpdate]);
