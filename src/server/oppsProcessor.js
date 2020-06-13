@@ -3,11 +3,12 @@ const priceDataApi = require('./priceDataApi');
 // trade validator and eExecutor (adhoc)
 const tradeValidator = require('./tradeValidate');
 const tradeExecutor = require('./tradeExecute');
+const config = require('./config/config');
 
-
-const tradeTrigger_pc = 1.01 // e.g. 1.005 = 0.5% and above, up to 0.3% to 0.8% trade fee (2 legs) and rebalancing cost
-const tradeTrigger_val = 1 / 7500 * 5 // ref 0.0001 ~ £0.5 @ £5000/btc
-const batch_limit = 15 //max number of validations per cycle/batch
+const { tradeTrigger_pc, tradeTrigger_val, batch_limit } = config
+// pc 1.005 = 0.5% and above, up to 0.3% to 0.8% trade fee (2 legs) and rebalancing cost
+// val ref 0.000067 ~ £0.5 @ £7500/btc
+// batchlimit max number of validations per cycle/batch
 
 const digest = async (sortedArbitrageObjs, balanceData, exchangeData, testMode, eachOp, endOp) => {
     let index = 0;
