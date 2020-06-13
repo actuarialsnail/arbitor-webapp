@@ -1,6 +1,7 @@
 const config = require('./config/config');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
+const querystring = require('querystring')
 
 const balanceObjFilter = (balanceObj, route) => {
     let filtered = {};
@@ -47,6 +48,7 @@ const execute = async (tradeObj, balanceData, trade_sandbox) => {
         param.pair = p1 + '-' + p2;
         param.quantity_base = tradeObj.tradeSizeMax[index];
         param.buysell = tradeObj.tradeSide[index];
+        param.price = tradeObj.price[index];
         return param;
     })
     execute_output['orderParams'] = orders;
@@ -144,7 +146,27 @@ const execute = async (tradeObj, balanceData, trade_sandbox) => {
                 break;
 
             case 'cex':
+                const cex_url = 'https://cex.io/api/place_order/' + p1 + '/' + p2;
 
+                const cex_headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+                const cex_timestamp = Math.floor(Date.now() / 1000);
+
+                const message = cex_timestamp.toString() + config.credential.cex.userid + config.credential.cex.apiKey;
+                const cex_signature = crypto.createHmac('sha256', Buffer.from(config.credential.cex.secretKey)).update(message).digest('hex');
+
+                const cex_args = {
+                    key: config.credential.cex.apiKey,
+                    signature: cex_signature.toUpperCase(),
+                    nonce: cex_timestamp.toString(),
+                    order_type: 'market',
+                    type: order.buysell,
+                    amount: order.quantity_base * order.price, // for market buy CEX.io requires the amount of quote currency to spend
+                }
+
+                param.url = cex_url;
+                param.method = 'POST';
+                param.headers = cex_headers;
+                param.body = querystring.stringify(cex_args);
                 break;
 
             default:
@@ -320,6 +342,33 @@ const placeLimitOrders = async (requestObj, cb) => {
                 promiseArr.push(binance_orderParam);
                 break;
             case 'cex':
+                const cex_cred = credSet.cex;
+                const cex_url = 'https://cex.io/api/place_order/' + p1 + '/' + p2;
+
+                const cex_headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+                const cex_timestamp = Math.floor(Date.now() / 1000);
+
+                const message = cex_timestamp.toString() + config.credential[cex_cred].userid + config.credential[cex_cred].apiKey;
+                const cex_signature = crypto.createHmac('sha256', Buffer.from(config.credential[cex_cred].secretKey)).update(message).digest('hex');
+
+                const cex_args = {
+                    key: config.credential[cex_cred].apiKey,
+                    signature: cex_signature.toUpperCase(),
+                    nonce: cex_timestamp.toString(),
+                    order_type: reqOrder.type,
+                    type: reqOrder.side,
+                    price: reqOrder.price,
+                    amount: reqOrder.type === 'market' ? reqOrder.size * reqOrder.price : reqOrder.size, // for market buy CEX.io requires the amount of quote currency to spend
+                }
+
+                const cex_body = querystring.stringify(cex_args);
+                const cex_orderParam = {
+                    url: cex_url,
+                    method: 'POST',
+                    headers: cex_headers,
+                    body: cex_body
+                }
+                promiseArr.push(cex_orderParam);
                 break;
             default:
                 console.log('unknown exchange requested');

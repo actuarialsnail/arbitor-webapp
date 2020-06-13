@@ -181,13 +181,27 @@ const cancelOrder = async (order, credSet, cb) => {
             req = {
                 url: binance_burl + binance_endpoint + '?' + binance_dataQueryString + '&signature=' + binanceSignature(binance_dataQueryString, config.credential[binance_cred]),
                 method: 'DELETE',
-                headers: {
-                    'X-MBX-APIKEY': config.credential[binance_cred].apiKey
-                },
+                headers: { 'X-MBX-APIKEY': config.credential[binance_cred].apiKey },
                 body: null
             }
             break;
         case 'cex':
+            let cex_timestamp = Math.floor(Date.now() / 1000);
+            let message = cex_timestamp.toString() + config.credential[lookupKey.cex].userid + config.credential[lookupKey.cex].apiKey;
+            let cex_signature = crypto.createHmac('sha256', Buffer.from(config.credential[lookupKey.cex].secretKey)).update(message).digest('hex');
+
+            let cex_args = {
+                key: config.credential[lookupKey.cex].apiKey,
+                signature: cex_signature.toUpperCase(),
+                nonce: cex_timestamp.toString(),
+                id: order.id
+            }
+            req = {
+                url: 'https://cex.io/api/cancel_order/',
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: querystring.stringify(cex_args)
+            }
             break;
     }
     let apiRes = await apiRequest(req.url, req.method, req.headers, req.body);
