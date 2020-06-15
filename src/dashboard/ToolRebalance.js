@@ -6,7 +6,8 @@ import Typography from '@material-ui/core/Typography';
 import { makeStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import { BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import DefaultTooltipContent from 'recharts/lib/component/DefaultTooltipContent';
 import TextField from '@material-ui/core/TextField';
 import MaterialTable from 'material-table';
 import { forwardRef } from 'react';
@@ -324,7 +325,7 @@ export default function BalanceView() {
             </div>
             <Grid container spacing={3}>
                 {
-                    loadedBal && balanceData.uniqueCurrencyList.map(currency => {
+                    loadedStr && loadedBal && balanceData.uniqueCurrencyList.map(currency => {
                         const deltaBal = balanceTotal.total_post[currency] - balanceTotal.total_prior[currency];
                         return (
                             <React.Fragment key={currency}>
@@ -335,10 +336,10 @@ export default function BalanceView() {
                                     <Typography variant="body2">Delta: {deltaBal}</Typography>
                                     <BarChart width={450} height={200} data={balanceData.ffData} >
                                         <XAxis dataKey="exchangeName" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Bar dataKey={currency} fill="#8884d8" />
-                                        <Bar dataKey={currency + '_post'} fill="#8bb158" />
+                                        <YAxis yAxisId="left" />
+                                        <Tooltip content={<CustomTooltip streamData={streamData} />} />
+                                        <Bar yAxisId="left" dataKey={currency} fill="#8884d8" />
+                                        <Bar yAxisId="left" dataKey={currency + '_post'} fill="#8bb158" />
                                     </BarChart>
                                 </Grid>
                             </React.Fragment>
@@ -350,3 +351,37 @@ export default function BalanceView() {
         </div>
     )
 }
+
+const CustomTooltip = props => {
+    // payload[0] doesn't exist when tooltip isn't visible
+    if (props.payload[0] != null) {
+        // console.log(props);
+        const currency = props.payload[0].dataKey;
+        let refCurrency;
+        if (currency !== 'BTC') {
+            const side = (currency === 'GBP' || currency === 'EUR') ? 'sellBTC' : 'buyBTC';
+            const streamPair = (side === 'sellBTC') ? 'BTC-' + currency : currency + '-BTC';
+            const bidask = (side === 'sellBTC') ? 'bids' : 'asks';
+            const exchange = props.payload[0].payload.exchangeName;
+            if (props.streamData[streamPair]) {
+                if (props.streamData[streamPair][exchange]) {
+                    const price = (side === 'sellBTC') ? 1 / props.streamData[streamPair][exchange][bidask][0].price : props.streamData[streamPair][exchange][bidask][0].price;
+                    refCurrency = (props.payload[0].payload[currency] * price).toFixed(8);
+                }
+            } else {
+                refCurrency = 'Not available'
+            }
+        } else {
+            refCurrency = props.payload[0].payload[currency].toFixed(8);
+        }
+        const newPayload = [
+            ...props.payload,
+            {
+                name: currency + '_btc',
+                value: refCurrency,
+            },
+        ];
+        return <DefaultTooltipContent {...props} payload={newPayload} />;
+    }
+    return <DefaultTooltipContent {...props} />;
+};
