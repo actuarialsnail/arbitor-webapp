@@ -10,31 +10,36 @@ const processLineByLine = async (directoryPath, filename) => {
     });
     let count = 0;
     for await (const ln of rl) {
-        const line = JSON.parse(ln);
-        const timestamp = line.timestamp.slice(-1)[0];
-        const price = (line.price.slice(-1)[0] - 1) * 100;
-        if (sub_hcd_data.length === 0) {
-            sub_hcd_data.push({
-                x: timestamp,
-                y: price,
-                z: 0,
-                // to include other stats like min, max price, min, max liquidity, average liquidity
-            })
-        }
-        const lastCluster = sub_hcd_data.length - 1;
-        const prevTimestamp = sub_hcd_data[lastCluster].x;
-        const prevDuration = sub_hcd_data[lastCluster].z;
-        if ((timestamp - prevTimestamp - prevDuration) < waitperiod) {
-            sub_hcd_data[lastCluster].y = (sub_hcd_data[lastCluster].y * count + price) / (count + 1)
-            sub_hcd_data[lastCluster].z = timestamp - prevTimestamp;
-            count++;
-        } else {
-            sub_hcd_data.push({
-                x: timestamp,
-                y: price,
-                z: 0,
-            })
-            count = 0
+        try {
+            //console.log(ln);
+            const line = JSON.parse(ln);
+            const timestamp = line.timestamp.slice(-1)[0];
+            const price = (line.price.slice(-1)[0] - 1) * 100;
+            if (sub_hcd_data.length === 0) {
+                sub_hcd_data.push({
+                    x: timestamp,
+                    y: price,
+                    z: 0,
+                    // to include other stats like min, max price, min, max liquidity, average liquidity
+                })
+            }
+            const lastCluster = sub_hcd_data.length - 1;
+            const prevTimestamp = sub_hcd_data[lastCluster].x;
+            const prevDuration = sub_hcd_data[lastCluster].z;
+            if ((timestamp - prevTimestamp - prevDuration) < waitperiod) {
+                sub_hcd_data[lastCluster].y = (sub_hcd_data[lastCluster].y * count + price) / (count + 1)
+                sub_hcd_data[lastCluster].z = timestamp - prevTimestamp;
+                count++;
+            } else {
+                sub_hcd_data.push({
+                    x: timestamp,
+                    y: price,
+                    z: 0,
+                })
+                count = 0
+            }
+        } catch (err) {
+            console.log(err);
         }
     }
     console.log(filename + ' processed');
