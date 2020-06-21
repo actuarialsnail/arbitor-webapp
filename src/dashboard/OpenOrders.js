@@ -8,6 +8,14 @@ import { requestOpenOrdersData, cancelOpenOrdersListener, requestCancelOrder, ca
 import Snackbar from '@material-ui/core/Snackbar';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
+import ExpansionPanel from '@material-ui/core/ExpansionPanel';
+import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
+import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import Highcharts from 'highcharts';
+import HighchartsReact from 'highcharts-react-official';
+import Grid from '@material-ui/core/Grid';
+import Box from '@material-ui/core/Box';
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -103,14 +111,21 @@ export default function OrdersView() {
                                     )
                                 })
                             )
-                        case "coinbase": case "coinfloor":
+                        case "coinbase":
+                            return (
+                                <div key={'coinbase-orders'}>
+                                    <Typography>{exchange}</Typography>
+                                    <CoinbaseOpenOrders orders={orders} handleCancelOrderRequest={handleCancelOrderRequest} />
+                                </div>
+                            )
+                        case "coinfloor":
                             return (
                                 orders.map(order => {
                                     return (
                                         <div key={order.id}>
                                             <Typography>{exchange}: {order.id}</Typography>
                                             <pre>{JSON.stringify(order, null, 4)}</pre>
-                                            <Button variant="outlined" color="primary" onClick={handleCancelOrderRequest({ id: order.id, exchange, ...orders })}>
+                                            <Button variant="outlined" color="primary" onClick={handleCancelOrderRequest({ id: order.id, exchange, ...order })}>
                                                 Cancel order
                                             </Button>
                                             <br />
@@ -150,5 +165,115 @@ export default function OrdersView() {
             />
 
         </div>
-    )
+    );
+}
+
+function CoinbaseOpenOrders(props) {
+    const classes = useStyles();
+    const [detailsOpen, setDetailsOpen] = React.useState(false);
+
+    const ordersFormatting = (ordersArr) => {
+        let orderObj = {};
+        // sort by price
+        ordersArr.sort((a, b) => {
+            return Number(a.price) - Number(b.price);
+        })
+        // console.log(ordersArr);
+        // by product
+        ordersArr.forEach(order => {
+            if (!orderObj[order.product_id]) {
+                orderObj[order.product_id] = []
+            }
+            orderObj[order.product_id].push(order)
+        })
+        return orderObj;
+    };
+
+    const orders_by_product = ordersFormatting(props.orders);
+
+    const hcOptions = (productOrders) => {
+        const seriesData = productOrders.map(order => {
+            return [Number(order.price), Number(order.size)];
+        })
+        let options = {
+            chart: {
+                type: 'column',
+            },
+            credits: {
+                enabled: false
+            },
+            xAxis: {
+                title: {
+                    text: 'Price'
+                }
+            },
+            yAxis: {
+                title: {
+                    text: 'Size'
+                }
+            },
+            title: {
+                text: ''
+            },
+            legend: {
+                enabled: false
+            },
+            tooltip: {
+                headerFormat: '<span style="font-size=10px;">Price: {point.key}</span><br/>',
+                valueDecimals: 4
+            },
+            series: [{
+                name: 'Limit orders',
+                data: seriesData,
+            }]
+        }
+        return options;
+    }
+
+    const handleDialogOpen = () => {
+        setDetailsOpen(!detailsOpen);
+    }
+
+    return (
+        <div >
+            {
+                Object.keys(orders_by_product).map(product => {
+                    return (
+                        <ExpansionPanel key={product}>
+                            <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography >{product}</Typography>
+                            </ExpansionPanelSummary>
+                            <ExpansionPanelDetails>
+                                <Grid container spacing={3}>
+                                    <Grid item lg={12}>
+                                        <HighchartsReact highcharts={Highcharts} options={hcOptions(orders_by_product[product])} />
+                                    </Grid>
+                                    <Grid item lg={12}>
+                                        {
+                                            orders_by_product[product].map(order => {
+                                                return (
+                                                    <Box key={order.id} className={classes.root}>
+                                                        <Typography>{order.id}: price: {order.price} size: {order.size} </Typography>
+
+                                                        <Button variant="outlined" color="primary" onClick={props.handleCancelOrderRequest({ id: order.id, exchange: 'coinbase', ...order })}>
+                                                            Cancel order
+                                                        </Button>
+                                                        <Button variant="outlined" color="primary" onClick={handleDialogOpen}>
+                                                            Toggle details
+                                                        </Button>
+                                                        {detailsOpen && <pre>{JSON.stringify(order, null, 4)}</pre>}
+                                                        <Divider />
+                                                    </Box>
+                                                )
+                                            })
+                                        }
+                                    </Grid>
+                                </Grid>
+                            </ExpansionPanelDetails>
+                        </ExpansionPanel>
+                    )
+                })
+            }
+        </div>
+    );
 }
