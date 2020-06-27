@@ -62,6 +62,47 @@ const summarise = async (directoryPath, date) => {
         if (err) { console.log('Error occured when writing to hcd', { timestamp: Date.now(), err }); }
     })
     console.timeEnd('opp data process');
+    generateHtml(hcData, date);
+}
+
+const generateHtml = (hcData, date) => {
+    hcData_summary = htmlData_summary(hcData);
+    fs.writeFileSync('./hcd/' + date + '_summary.json', JSON.stringify(hcData_summary), (err) => {
+        if (err) { console.log('Error occured when writing to hcd_summary', { timestamp: Date.now(), err }); }
+    })
+    fs.readFile('./template.html', 'utf8', (err, data) => {
+        if (err) {
+            return console.log(err);
+        }
+        let result = data.replace("['{{placeholder}}']", JSON.stringify(hcData_summary)).replace("{{date}}", date);
+        fs.writeFile('./hcd/' + date + '.html', result, 'utf8', (err) => {
+            if (err) return console.log(err);
+        });
+    });
+
+}
+
+const htmlData_summary = (hcData) => {
+    let hcData_summary = [];
+    for (const route of hcData) {
+        let sData = route.data.reduce((a, b, index, self) => {
+            const keys = Object.keys(a);
+            let c = {};
+            keys.forEach((key) => {
+                c[key] = a[key] + b[key]
+                if (index + 1 === self.length && (key === 'x' || key === 'y')) {
+                    c[key] = c[key] / self.length
+                }
+            })
+            return c;
+        })
+        if (sData.z === 0) { continue; }
+        hcData_summary.push({
+            name: route.name,
+            data: [sData],
+        })
+    }
+    return hcData_summary
 }
 
 module.exports = { summarise };

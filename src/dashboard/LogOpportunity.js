@@ -50,6 +50,9 @@ export default function Opportunites() {
             subtitle: {
                 text: ''
             },
+            credits:{
+                enabled: false,
+            },
             xAxis: {
                 gridLineWidth: 1,
                 title: {
@@ -112,7 +115,7 @@ export default function Opportunites() {
                 return;
             }
             // console.log(hcData)
-            const hcData_summary = []
+            let hcData_summary = []
             for (const route of hcData[0]) {
                 let sData = route.data.reduce((a, b, index, self) => {
                     const keys = Object.keys(a);

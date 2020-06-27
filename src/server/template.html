@@ -1,0 +1,76 @@
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/highcharts-more.js"></script>
+<figure class="highcharts-figure">
+  <div id="container"></div>
+</figure>
+<Script>
+  Highcharts.chart('container', {
+    chart: {
+      type: 'bubble',
+      plotBorderWidth: 1,
+      zoomType: 'xy'
+    },
+
+    legend: {
+      enabled: false
+    },
+
+    exporting: {
+      enabled: false
+    },
+
+    title: {
+      text: 'Historical arbitrage opportunities {{date}}'
+    },
+
+    subtitle: {
+      text: ''
+    },
+    credits: {
+      enabled: false,
+    },
+    xAxis: {
+      gridLineWidth: 1,
+      title: {
+        text: 'Time'
+      },
+      labels: {
+        formatter: function () {
+          let d = new Date(this.value);
+          return d.toTimeString().slice(0, 5);
+        }
+      },
+    },
+
+    yAxis: {
+      startOnTick: false,
+      endOnTick: false,
+      title: {
+        text: 'Profit'
+      },
+      labels: {
+        formatter: function () {
+          return this.value.toFixed(2) + ' %';
+        }
+      },
+      maxPadding: 0.2,
+    },
+    tooltip: {
+      useHTML: true,
+      formatter:
+        function () {
+          const d = new Date(this.point.x);
+          const n = new Date(this.point.z);
+          const heading = '<table style="font-size:12;"><tr><th colspan="2"><h4>' + this.series.name + '</h4></th></tr>';
+          const time = '<tr><th>Time:</th><td>' + d.toTimeString().slice(0, 5) + '</td></tr>';
+          const profit = '<tr><th>Average Profit:</th><td>' + (this.point.y).toFixed(2) + '%</td></tr>';
+          const duration = '<tr><th>Duration:</th><td>' + n.toTimeString().slice(0, 5) + '</td></tr>';
+          const footer = '</table>'
+          return heading + time + profit + duration + footer;
+        },
+
+      followPointer: true,
+    },
+    series: ['{{placeholder}}']
+  });
+</Script>

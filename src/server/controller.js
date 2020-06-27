@@ -12,7 +12,7 @@ const routeCalculator = require('./routeCalculate');
 // log (timer)
 const fs = require('fs');
 const readline = require('readline');
-// const mailer = require('./mailer');
+const mailer = require('./mailer');
 const io = require('socket.io')();
 
 // balance info (init + adhoc)
@@ -234,7 +234,7 @@ if (cluster.isMaster) {
     // mailer
     // AoC update
     let email_sent = false;
-    const email_hour = 3;
+    const email_hour = 5;
     const email_minute = 30;
     let balanceSnapshot = false;
     const balance_minute = 10; //hourly
@@ -246,6 +246,9 @@ if (cluster.isMaster) {
         let tmstmp_currentSys = new Date();
         let hour = tmstmp_currentSys.getHours();
         let minute = tmstmp_currentSys.getMinutes();
+        const yesterday = new Date(tmstmp_currentSys);
+        yesterday.setDate(yesterday.getDate() - 1);
+        let prefix_date = yesterday.toJSON().slice(0, 10);
 
         // balance data polling
         if (minute === balance_minute) {
@@ -285,7 +288,15 @@ if (cluster.isMaster) {
             hcDataProcessed = false;
         }
 
-        // scheduled email notification
+        // scheduled daily email notification
+        if (hour === email_hour && minute === email_minute) {
+            if (!email_sent) {
+                email_sent = true;
+                mailer.sendMail('opportunity', 'Attached.', prefix_date + '.html');
+            }
+        } else {
+            email_sent = false;
+        }
 
     }, 1000)
 } else {
@@ -403,6 +414,9 @@ if (cluster.isMaster) {
                                 type: 'oppsProcessor',
                                 res: { balanceData },
                             })
+                            if (!config.testMode) {
+                                mailer.sendMail('trade', tradeRes, null);
+                            }
                         };
                     }, () => { toRunOp = true; }) //endOp
                 }
