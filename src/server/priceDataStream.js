@@ -1,7 +1,7 @@
 const WebSocket = require('ws');
 const fetch = require('node-fetch');
 const productScope = require('./config/scope').products;
-const _config = require('./config/config').scheduled_timer;
+const _config = require('./config/config');
 
 class priceDataStreamClass {
   constructor() {
