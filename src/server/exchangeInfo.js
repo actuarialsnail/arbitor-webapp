@@ -45,7 +45,8 @@ const batchExchangeInfoRequest = async () => {
         kraken: { tradeFee: 0.0026 },
         binance: { tradeFee: 0.001 },
         cex: { tradeFee: 0.0025 },
-        bisq: { tredeFee: 0.01 }
+        bisq: { tredeFee: 0.01 },
+        binanceJe: { tradeFee: 0.001 },
     };
 
     // coinfloor

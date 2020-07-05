@@ -81,7 +81,7 @@ symbolSets.forEach(set => {
 
 const autoRebal = false;
 const strictTmstmpInd = true;
-const strictTmstmpLimit = 30 * 1e3; // n * seconds
+const strictTmstmpLimit = 5 * 60 * 1e3; // n * seconds
 const showProfitOnly = true;
 const minMonitoringLevel = 0.99;
 

@@ -1,8 +1,9 @@
 const WebSocket = require('ws');
 const fetch = require('node-fetch');
+const productScope = require('./config/scope').products;
 
 const _config = {
-  scheduled_timer: 3600000 // hourly: 3600000 = 1000 *60 *60, 2 minutes: 120000
+  scheduled_timer: 120000 // hourly: 3600000 = 1000 *60 *60, 2 minutes: 120000
 }
 
 class priceDataStreamClass {
@@ -56,6 +57,7 @@ class priceDataStreamClass {
     this.binanceOrderbookRequest();
     this.krakenOrderbookRequest();
     this.cexOrderbookRequest();
+    this.binanceJeOrderbookRequest();
     setInterval(() => {
       this.bisqOrderbookRequst();
     }, 5000)
@@ -179,8 +181,11 @@ class priceDataStreamClass {
     const kraken_map = (pair) => {
       return (pair.replace('/', '-').replace('XBT', 'BTC'));
     }
-    const kraken_pairs = ['BTC/GBP', 'ETH/GBP', 'BTC/EUR', 'ETH/EUR', 'BCH/EUR', 'LTC/EUR', 'ETH/BTC', 'BCH/BTC', 'LTC/BTC', 'BAT/BTC', 'BAT/ETH', 'BAT/EUR', 'GBP/USD', 'EUR/USD', 'EUR/GBP'];
-
+    const kraken_toMap = (pair) => {
+      return pair.replace('-', '/');
+    }
+    // const kraken_pairs = ['BTC/GBP', 'ETH/GBP', 'BTC/EUR', 'ETH/EUR', 'BCH/EUR', 'LTC/EUR', 'ETH/BTC', 'BCH/BTC', 'LTC/BTC', 'BAT/BTC', 'BAT/ETH', 'BAT/EUR', 'GBP/USD', 'EUR/USD', 'EUR/GBP'];
+    const kraken_pairs = productScope.kraken.map(pair => kraken_toMap(pair));
     const kraken_request = {
       "event": "subscribe",
       "pair": kraken_pairs,
@@ -295,7 +300,8 @@ class priceDataStreamClass {
 
   coinbaseOrderbookRequest() {
     let coinbaseTimeout;
-    const product_list = ['BTC-GBP', 'ETH-GBP', 'BCH-GBP', 'LTC-GBP', 'BTC-EUR', 'ETH-EUR', 'BCH-EUR', 'LTC-EUR', 'ETH-BTC', 'BCH-BTC', 'LTC-BTC', 'BAT-ETH', 'XRP-BTC', 'XRP-EUR'];
+    // const product_list = ['BTC-GBP', 'ETH-GBP', 'BCH-GBP', 'LTC-GBP', 'BTC-EUR', 'ETH-EUR', 'BCH-EUR', 'LTC-EUR', 'ETH-BTC', 'BCH-BTC', 'LTC-BTC', 'BAT-ETH', 'XRP-BTC', 'XRP-EUR'];
+    const product_list = productScope.coinbase;
     // const product_list = ['BTC-GBP'];
 
     const coinbase = require('coinbase-pro');
@@ -412,7 +418,8 @@ class priceDataStreamClass {
 
   binanceOrderbookRequest() {
     let binanceTimeout;
-    const product_list = ['ETHBTC', 'BCHBTC', 'LTCBTC', 'LTCETH', 'BATBTC', 'BATETH', 'XRPBTC', 'BTCEUR', 'ETHEUR', 'XRPEUR'];
+    // const product_list = ['ETHBTC', 'BCHBTC', 'LTCBTC', 'LTCETH', 'BATBTC', 'BATETH', 'XRPBTC', 'BTCEUR', 'ETHEUR', 'XRPEUR'];
+    const product_list = productScope.binance.map(pair => pair.replace('-', ''));
     const binanceMap = {};
     product_list.forEach(key => {
       binanceMap[key] = key.slice(0, 3) + '-' + key.slice(3, 6);
@@ -493,7 +500,8 @@ class priceDataStreamClass {
   } // binanceOrderbookRequest
 
   cexOrderbookRequest() {
-    const product_list = ['BTC-GBP', 'ETH-GBP', 'BCH-GBP', 'LTC-GBP', 'XRP-GBP', 'BTC-EUR', 'ETH-EUR', 'BCH-EUR', 'LTC-EUR', 'XRP-EUR', 'ETH-BTC', 'BCH-BTC', 'LTC-BTC', 'XRP-BTC', 'BAT-EUR'];
+    // const product_list = ['BTC-GBP', 'ETH-GBP', 'BCH-GBP', 'LTC-GBP', 'XRP-GBP', 'BTC-EUR', 'ETH-EUR', 'BCH-EUR', 'LTC-EUR', 'XRP-EUR', 'ETH-BTC', 'BCH-BTC', 'LTC-BTC', 'XRP-BTC', 'BAT-EUR'];
+    const product_list = productScope.cex;
     let cexTimeout;
     let payload = product_list.map(product => {
       return 'pair-' + product
@@ -561,7 +569,8 @@ class priceDataStreamClass {
 
   bisqOrderbookRequst() {
     const exchange = 'bisq';
-    const product_list = ['ETH-BTC', 'LTC-BTC', 'BTC-GBP', 'BTC-EUR'];
+    // const product_list = ['ETH-BTC', 'LTC-BTC', 'BTC-GBP', 'BTC-EUR'];
+    const product_list = productScope.bisq;
     const bisqFormat = (product) => {
       return product.replace('-', '_').toLowerCase();
     }
@@ -596,6 +605,76 @@ class priceDataStreamClass {
 
     const sortOrderbook = (ordersArr) => {
 
+    }
+  }
+
+  binanceJeOrderbookRequest() {
+    let binanceJeTimeout;
+    // const product_list = ['ETHBTC', 'BCHBTC', 'LTCBTC', 'LTCETH', 'BATBTC', 'BATETH', 'XRPBTC', 'BTCEUR', 'ETHEUR', 'XRPEUR'];
+    const product_list = productScope.binanceJe.map(pair => pair.replace('-', ''));
+    const binanceJeMap = {};
+    product_list.forEach(key => {
+      binanceJeMap[key] = key.slice(0, 3) + '-' + key.slice(3, 6);
+    })
+    const binanceJe_ws = new WebSocket('wss://stream.binance.je:9443/ws');
+
+    binanceJe_ws.on('open', () => {
+      console.log('binanceJe websocket connected at:', new Date());
+      binanceJeTimeout = setTimeout(() => {
+        console.log('scheduled reconnection of binanceJe websocket connection');
+        binanceJe_ws.close();
+      }, _config.scheduled_timer);
+      const req = {
+        "method": "SUBSCRIBE",
+        "params": product_list.map(product => product.toLowerCase() + '@bookTicker'),
+        "id": 1
+      }
+      binanceJe_ws.send(JSON.stringify(req));
+
+    });
+
+    binanceJe_ws.on('error', error => {
+      console.log('binanceJe error', error);
+    })
+
+    binanceJe_ws.on('ping', (msg) => {
+      // console.log('ping received...', msg);
+      binanceJe_ws.pong();
+    })
+
+    binanceJe_ws.on('message', msg => {
+      // console.log(msg);
+      let res;
+      try {
+        res = JSON.parse(msg);
+      } catch (e) {
+        console.log('json error', e)
+      }
+
+      if (res.id === 1) { return; }
+
+      exchangeTicker(res);
+    })
+
+    binanceJe_ws.on('close', () => {
+      console.log('binanceJe websocket connection closed, reconnecting in 5s...');
+      clearTimeout(binanceJeTimeout);
+      setTimeout(() => { this.binanceJeOrderbookRequest() }, 5000);
+    })
+
+    let exchangeTicker = ticker => {
+      let { s: bsymbol, b: bestBid, B: bestBidQnt, a: bestAsk, A: bestAskQnt } = ticker;
+      let symbol = binanceJeMap[bsymbol];
+      if (symbol in this.streamData) {
+        if (!('binanceJe' in this.streamData[symbol])) {
+          this.streamData[symbol].binanceJe = {}
+        }
+      } else {
+        this.streamData[symbol] = { 'binanceJe': {} }
+      }
+      this.streamData[symbol].binanceJe = { bids: [{ price: Number(bestBid), size: Number(bestBidQnt) }], asks: [{ price: Number(bestAsk), size: Number(bestAskQnt) }], timestamp: Date.now() }
+      // console.log(this.streamData[symbol].binanceJe);
+      this.streamDataToPriceData(symbol, 'binanceJe', this.streamData[symbol].binanceJe);
     }
   }
 

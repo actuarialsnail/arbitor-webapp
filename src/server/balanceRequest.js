@@ -53,7 +53,7 @@ const apiRequest = async (url, method, headers, body) => {
 const batchApiBalanceRequest = async (credSet) => {
     let balanceResults = {};
     let lookupKey = {}
-    if (config.credSet.hasOwnProperty(credSet)){
+    if (config.credSet.hasOwnProperty(credSet)) {
         lookupKey = config.credSet[credSet];
     } else {
         const dummy = {
@@ -229,6 +229,7 @@ const batchApiBalanceRequest = async (credSet) => {
     }));
 
     balanceResults.bisq = {};
+    balanceResults.binanceJe = {};
     //console.log(balanceResults);
     return balanceResults;
 }
