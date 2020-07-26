@@ -7,6 +7,7 @@ import Divider from '@material-ui/core/Divider';
 import { requestOpenOrdersData, cancelOpenOrdersListener, requestCancelOrder, cancelCancelOrderListener } from '../api';
 import Snackbar from '@material-ui/core/Snackbar';
 import IconButton from '@material-ui/core/IconButton';
+import DeleteIcon from '@material-ui/icons/Delete';
 import CloseIcon from '@material-ui/icons/Close';
 import ExpansionPanel from '@material-ui/core/ExpansionPanel';
 import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
@@ -25,6 +26,9 @@ const useStyles = makeStyles(theme => ({
     },
     table: {
         width: '950px',
+    },
+    expansionText: {
+        verticalAlign: 'middle',
     }
 }));
 
@@ -236,12 +240,18 @@ function CoinbaseOpenOrders(props) {
 
     return (
         <div >
+            <IconButton aria-label="delete" onClick={props.handleCancelOrderRequest({ id: 'cancel_all', exchange: 'coinbase', type: 'exchange' })} >
+                <DeleteIcon fontSize="small" />
+            </IconButton>
             {
                 Object.keys(orders_by_product).map(product => {
                     return (
                         <ExpansionPanel key={product}>
                             <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
                                 <Typography >{product}</Typography>
+                                <IconButton aria-label="delete" onClick={props.handleCancelOrderRequest({ id: 'cancel_all', exchange: 'coinbase', product, type: 'product' })} >
+                                    <DeleteIcon fontSize="small" />
+                                </IconButton>
                             </ExpansionPanelSummary>
                             <ExpansionPanelDetails>
                                 <Grid container spacing={3}>
@@ -255,7 +265,7 @@ function CoinbaseOpenOrders(props) {
                                                     <Box key={order.id} className={classes.root}>
                                                         <Typography>{order.id}: price: {order.price} size: {order.size} </Typography>
 
-                                                        <Button variant="outlined" color="primary" onClick={props.handleCancelOrderRequest({ id: order.id, exchange: 'coinbase', ...order })}>
+                                                        <Button variant="outlined" color="primary" onClick={props.handleCancelOrderRequest({ id: order.id, exchange: 'coinbase', ...order, type: 'order' })}>
                                                             Cancel order
                                                         </Button>
                                                         <Button variant="outlined" color="primary" onClick={handleDialogOpen}>

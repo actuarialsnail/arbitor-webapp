@@ -137,12 +137,13 @@ const cancelOrder = async (order, credSet, cb) => {
         case 'coinbase':
             const coinbase_cred = lookupKey.coinbase;
             const coinbase_timestamp = Date.now() / 1000;
+            const coinbase_url_query = order.type == 'order' ? '/' + order.id : order.type == 'product' ? '?product_id=' + order.product : '';
             req = {
-                url: config.credential[coinbase_cred].apiURL + '/orders/' + order.id,
+                url: config.credential[coinbase_cred].apiURL + '/orders' + coinbase_url_query,
                 method: 'DELETE',
                 headers: {
                     'CB-ACCESS-KEY': config.credential[coinbase_cred].apikey,
-                    'CB-ACCESS-SIGN': coinbaseSignature(coinbase_timestamp, 'DELETE', '/orders/' + order.id, "", config.credential[coinbase_cred].base64secret),
+                    'CB-ACCESS-SIGN': coinbaseSignature(coinbase_timestamp, 'DELETE', '/orders' + coinbase_url_query, "", config.credential[coinbase_cred].base64secret),
                     'CB-ACCESS-TIMESTAMP': coinbase_timestamp,
                     'CB-ACCESS-PASSPHRASE': config.credential[coinbase_cred].passphrase,
                     'Content-Type': 'application/json'
