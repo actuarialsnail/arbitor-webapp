@@ -241,10 +241,8 @@ const request = async (credSet, callback) => {
     } catch (error) {
         const fs = require('fs');
         let tmstmp_currentSys = new Date();
-        fs.writeFile('./log/balanceData-error.json', tmstmp_currentSys + JSON.stringify(error), (err) => {
-            if (err) {
-                console.log('Error occured when writing to file', { tmstmp_currentSys, err });
-            }
+        fs.appendFile('./log/balanceData-error.json', JSON.stringify({ timestamp: tmstmp_currentSys, error }), (err) => {
+            if (err) { console.log('Error occured when writing to file', { tmstmp_currentSys, err }); }
         });
     }
 }
