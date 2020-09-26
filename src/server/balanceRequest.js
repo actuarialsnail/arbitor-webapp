@@ -235,13 +235,15 @@ const batchApiBalanceRequest = async (credSet) => {
 }
 
 const request = async (credSet, callback) => {
+    let catch_res;
     try {
         let balance = await batchApiBalanceRequest(credSet);
+        catch_res = balance;
         callback(balance);
     } catch (error) {
         const fs = require('fs');
         let tmstmp_currentSys = new Date();
-        fs.appendFile('./log/balanceData-error.json', JSON.stringify({ timestamp: tmstmp_currentSys, error }), (err) => {
+        fs.appendFile('./log/balanceData-error.json', JSON.stringify({ timestamp: tmstmp_currentSys, error, catch_res }), (err) => {
             if (err) { console.log('Error occured when writing to file', { tmstmp_currentSys, err }); }
         });
     }
