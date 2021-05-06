@@ -13,7 +13,7 @@
     "binance-api-node": "^0.9.15",
     "coinbase-pro": "^0.9.0",
     "date-fns": "^2.0.0-beta.5",
-    "highcharts": "^8.1.2",
+    "highcharts": "^9.0.0",
     "highcharts-react-official": "^3.0.0",
     "material-table": "^1.57.2",
     "node-fetch": "^2.6.0",
